@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, MessageCircle, Send, Lock } from 'lucide-react';
+import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, MessageCircle, Send, Lock, Search } from 'lucide-react';
 
 export default function Groups() {
     const location = useLocation();
@@ -279,6 +279,25 @@ export default function Groups() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 16px 8px' }}>
                 <div className="page-title" style={{ padding: 0, marginBottom: 0 }}>Groups</div>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>+ Create</button>
+            </div>
+
+            <div style={{ padding: '8px 16px' }} className="mobile-only-search">
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Search size={16} color="var(--text2)" style={{ position: 'absolute', left: 12 }} />
+                    <input 
+                        className="input-field"
+                        style={{ paddingLeft: 36, margin: 0, height: 40, background: 'var(--bg-subtle)' }}
+                        placeholder="Search groups..." 
+                        onChange={(e) => {
+                            const query = e.target.value.toLowerCase();
+                            if (query) {
+                                setGroups(groups => groups.filter(g => g.name.toLowerCase().includes(query)));
+                            } else {
+                                fetchGroups();
+                            }
+                        }}
+                    />
+                </div>
             </div>
 
             {myGroups.length > 0 && (

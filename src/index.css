@@ -465,6 +465,10 @@ a {
    RESPONSIVE BREAKPOINTS
    ========================================== */
 @media (min-width: 768px) {
+    .mobile-only-search {
+        display: none;
+    }
+
     .desktop-header {
         display: flex;
     }

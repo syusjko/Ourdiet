@@ -192,11 +192,11 @@ export default function NewPost() {
                 <>
                     <div className="input-group">
                         <label className="input-label">What did you eat?</label>
-                        <textarea className="input-field" placeholder="e.g. 김치찌개 한 그릇, 밥 한 공기, 반찬 3개" value={textQuery} onChange={e => setTextQuery(e.target.value)}
+                        <textarea className="input-field" placeholder="e.g. A bowl of soup, one bowl of rice, and a few side dishes" value={textQuery} onChange={e => setTextQuery(e.target.value)}
                             style={{ minHeight: 100 }} />
                     </div>
                     <button className="analyze-btn" onClick={analyzeText} disabled={analyzing || !textQuery.trim()}>
-                        {analyzing ? <div className="spinner" /> : <><Sparkles size={18} /> AI로 영양분석</>}
+                        {analyzing ? <div className="spinner" /> : <><Sparkles size={18} /> Analyze with AI</>}
                     </button>
                 </>
             )}
@@ -205,7 +205,7 @@ export default function NewPost() {
             <>
                 {/* Date */}
                 <div className="input-group">
-                    <label className="input-label">날짜</label>
+                    <label className="input-label">Date</label>
                     <input className="input-field" type="date" value={mealDate} onChange={e => setMealDate(e.target.value)} />
                 </div>
 
