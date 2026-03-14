@@ -3018,7 +3018,8 @@ textarea.input-field {
 
 .landing-page {
     min-height: 100dvh;
-    background: #fff;
+    background-color: #faf9f6;
+    background-image: url("https://www.transparenttextures.com/patterns/cream-paper.png");
     overflow-x: hidden;
 }
 
@@ -3029,10 +3030,9 @@ textarea.input-field {
     left: 0;
     right: 0;
     z-index: 1000;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid #eee;
+    background: rgba(250, 249, 246, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .landing-nav-inner {
