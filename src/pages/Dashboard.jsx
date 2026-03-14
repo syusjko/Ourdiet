@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { Edit, Utensils, ChevronLeft, ChevronRight, Plus, Image, Clock, Flame, Footprints, Dumbbell, Activity } from 'lucide-react';
+import { Utensils, ChevronLeft, ChevronRight, Plus, Clock, Trash2, X, Check } from 'lucide-react';
 
 const calculateBMR = (weight, height, age, gender) => {
     if (!weight || !height || !age) return 0;
@@ -38,10 +38,10 @@ function ActivityRings({ size = 90, move = 0, exercise = 0, stand = 0 }) {
     );
 }
 
-function DayMealCard({ meal }) {
+function DayMealCard({ meal, onClick }) {
     const time = new Date(meal.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     return (
-        <div className="day-meal-card">
+        <div className="day-meal-card" onClick={onClick} style={{ cursor: 'pointer' }}>
             {meal.image_url && meal.image_url !== 'manual' ? (
                 <div className="day-meal-thumb">
                     <img src={meal.image_url} alt={meal.description} />
@@ -78,10 +78,11 @@ export default function Dashboard() {
     const [caloriesConsumed, setCaloriesConsumed] = useState(0);
     const [dailyNutrients, setDailyNutrients] = useState({ protein: 0, carbs: 0, fat: 0 });
     const [dayMeals, setDayMeals] = useState([]);
+    const [selectedMeal, setSelectedMeal] = useState(null); // for edit/delete modal
+    const [editMeal, setEditMeal] = useState(null); // edit form state
     const [steps, setSteps] = useState(0);
     const [activeCalories, setActiveCalories] = useState(0);
-    const [stepsInput, setStepsInput] = useState('');
-    const [activeCalInput, setActiveCalInput] = useState('');
+
     const [showStats, setShowStats] = useState(false);
     const [statsTab, setStatsTab] = useState('day');
     const [weeklyData, setWeeklyData] = useState([]);
@@ -133,7 +134,7 @@ export default function Dashboard() {
     useEffect(() => {
         if (user) {
             fetchDayData(selectedDate);
-            loadLocalData(selectedDate);
+            loadWorkoutData(selectedDate);
         }
     }, [selectedDate, user]);
 
@@ -141,6 +142,28 @@ export default function Dashboard() {
         if (!user) return;
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (data) setProfile(data);
+    };
+
+    const handleDeleteMeal = async (meal) => {
+        if (!window.confirm(`'${meal.description || 'Meal'}'을(를) 삭제할까요?`)) return;
+        await supabase.from('meals').delete().eq('id', meal.id);
+        setSelectedMeal(null);
+        fetchDayData(selectedDate);
+    };
+
+    const handleSaveEditMeal = async () => {
+        if (!editMeal) return;
+        await supabase.from('meals').update({
+            description: editMeal.description,
+            calories: parseInt(editMeal.calories) || 0,
+            protein: parseFloat(editMeal.protein) || 0,
+            carbs: parseFloat(editMeal.carbs) || 0,
+            fat: parseFloat(editMeal.fat) || 0,
+            meal_type: editMeal.meal_type || 'meal',
+        }).eq('id', editMeal.id);
+        setSelectedMeal(null);
+        setEditMeal(null);
+        fetchDayData(selectedDate);
     };
 
     const fetchDayData = async (date) => {
@@ -164,12 +187,21 @@ export default function Dashboard() {
         }
     };
 
-    const loadLocalData = (date) => {
+    const loadWorkoutData = async (date) => {
         const dateStr = date.toISOString().split('T')[0];
-        const savedSteps = localStorage.getItem(`steps_${dateStr}`);
-        const savedCal = localStorage.getItem(`activeCal_${dateStr}`);
-        setSteps(savedSteps ? parseInt(savedSteps) : 0);
-        setActiveCalories(savedCal ? parseInt(savedCal) : 0);
+        const { data } = await supabase.from('workout_logs')
+            .select('steps, exercise_calories')
+            .eq('user_id', user.id)
+            .eq('log_date', dateStr)
+            .maybeSingle();
+
+        if (data) {
+            setSteps(data.steps || 0);
+            setActiveCalories(data.exercise_calories || 0);
+        } else {
+            setSteps(0);
+            setActiveCalories(0);
+        }
     };
 
     const fetchWeeklyData = async () => {
@@ -185,23 +217,7 @@ export default function Dashboard() {
         setWeeklyData(days);
     };
 
-    const saveSteps = () => {
-        const v = parseInt(stepsInput);
-        if (!isNaN(v)) {
-            setSteps(v);
-            localStorage.setItem(`steps_${selectedDate.toISOString().split('T')[0]}`, v);
-            setStepsInput('');
-        }
-    };
 
-    const saveActiveCal = () => {
-        const v = parseInt(activeCalInput);
-        if (!isNaN(v)) {
-            setActiveCalories(v);
-            localStorage.setItem(`activeCal_${selectedDate.toISOString().split('T')[0]}`, v);
-            setActiveCalInput('');
-        }
-    };
 
     const goToPrevDay = () => {
         const d = new Date(selectedDate);
@@ -347,7 +363,7 @@ export default function Dashboard() {
             <div className="day-section">
                 <div className="day-section-header">
                     <span className="day-section-title">Meals ({dayMeals.length})</span>
-                    <button className="day-section-action" onClick={() => navigate('/new-post')}>
+                    <button className="day-section-action" onClick={() => navigate('/app/new-post')}>
                         <Plus size={16} /> Add
                     </button>
                 </div>
@@ -358,78 +374,80 @@ export default function Dashboard() {
                         <div className="day-empty-title">No meals recorded</div>
                         <div className="day-empty-sub">{isToday(selectedDate) ? 'Tap + to log your first meal today' : 'No records for this day'}</div>
                         {isToday(selectedDate) && (
-                            <button className="btn btn-primary btn-sm" onClick={() => navigate('/new-post')} style={{ marginTop: 12 }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => navigate('/app/new-post')} style={{ marginTop: 12 }}>
                                 <Plus size={16} /> Log Meal
                             </button>
                         )}
                     </div>
                 ) : (
-                    <div className="day-meals-list">
-                        {dayMeals.map(meal => <DayMealCard key={meal.id} meal={meal} />)}
+                    <div className="day-meals-categories">
+                        {['meal', 'snack', 'etc'].map(type => {
+                            // support older posts that didn't have meal_type set (default to meal)
+                            const typeMeals = dayMeals.filter(m => (m.meal_type || 'meal') === type);
+                            if (typeMeals.length === 0) return null;
+                            return (
+                                <div key={type} style={{ marginBottom: 16 }}>
+                                    <h4 style={{ margin: '0 0 12px 4px', fontSize: 16, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        {type === 'meal' ? '🥗' : type === 'snack' ? '🍪' : '☕'} {type.charAt(0).toUpperCase() + type.slice(1)}
+                                    </h4>
+                                    <div className="day-meals-list">
+                                        {typeMeals.map(meal => <DayMealCard key={meal.id} meal={meal} onClick={() => { setSelectedMeal(meal); setEditMeal({ ...meal }); }} />)}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>
 
-            {/* Burn Breakdown */}
-            <div className="card" style={{ margin: '0 16px 16px' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Flame size={16} /> Burn Breakdown
-                </div>
-                <div className="burn-breakdown">
-                    <div className="burn-row">
-                        <div className="burn-row-left">
-                            <Activity size={16} color="#FF9500" />
-                            <div>
-                                <div className="burn-row-title">Base Metabolism (BMR)</div>
-                                <div className="burn-row-sub">
-                                    {isToday(selectedDate)
-                                        ? `${Math.round(getTimeFraction() * 100)}% of day elapsed`
-                                        : 'Full day'}
-                                    {bmrFull > 0 && <> · Daily total: {bmrFull} kcal</>}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="burn-row-value">{bmrBurned}</div>
-                    </div>
-                    <div className="burn-row">
-                        <div className="burn-row-left">
-                            <Footprints size={16} color="#32ADE6" />
-                            <div>
-                                <div className="burn-row-title">Walking ({steps.toLocaleString()} steps)</div>
-                                <div className="burn-row-sub">Based on {weight}kg body weight</div>
-                            </div>
-                        </div>
-                        <div className="burn-row-value">{stepCalories}</div>
-                    </div>
-                    <div className="burn-row">
-                        <div className="burn-row-left">
-                            <Dumbbell size={16} color="#AF52DE" />
-                            <div>
-                                <div className="burn-row-title">Exercise (manual)</div>
-                                <div className="burn-row-sub">Gym, sports, etc.</div>
-                            </div>
-                        </div>
-                        <div className="burn-row-value">{activeCalories}</div>
-                    </div>
-                    <div className="burn-total">
-                        <span>Total Burned</span>
-                        <span style={{ color: '#34C759', fontWeight: 800 }}>{totalBurned} kcal</span>
-                    </div>
-                </div>
-            </div>
 
-            {/* Manual Steps & Active Calories Input */}
-            <div className="card" style={{ margin: '0 16px 16px' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}><Edit size={16} /> Manual Input</div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                    <input className="steps-input" type="number" placeholder="Steps" value={stepsInput} onChange={e => setStepsInput(e.target.value)} />
-                    <button className="weight-add-btn" onClick={saveSteps} style={{ padding: '0 16px', fontSize: 13 }}>Save</button>
+
+            {/* Meal Edit/Delete Modal */}
+            {selectedMeal && editMeal && (
+                <div className="modal-overlay">
+                    <div className="modal-backdrop" onClick={() => { setSelectedMeal(null); setEditMeal(null); }} />
+                    <div className="modal-sheet" style={{ padding: '20px 20px 32px' }}>
+                        <div className="sheet-handle" />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div className="sheet-title" style={{ margin: 0 }}>Edit Meal</div>
+                            <button onClick={() => { setSelectedMeal(null); setEditMeal(null); }} style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <div className="input-group" style={{ marginBottom: 10 }}>
+                            <label className="input-label">Description</label>
+                            <input className="input-field" value={editMeal.description || ''} onChange={e => setEditMeal(p => ({ ...p, description: e.target.value }))} />
+                        </div>
+                        <div className="input-group" style={{ marginBottom: 10 }}>
+                            <label className="input-label">Calories</label>
+                            <input className="input-field" type="number" value={editMeal.calories || ''} onChange={e => setEditMeal(p => ({ ...p, calories: e.target.value }))} />
+                        </div>
+                        <div className="macros-row" style={{ marginBottom: 10 }}>
+                            <div className="macro-input"><div className="input-label">Protein (g)</div><input className="input-field" type="number" value={editMeal.protein || ''} onChange={e => setEditMeal(p => ({ ...p, protein: e.target.value }))} /></div>
+                            <div className="macro-input"><div className="input-label">Carbs (g)</div><input className="input-field" type="number" value={editMeal.carbs || ''} onChange={e => setEditMeal(p => ({ ...p, carbs: e.target.value }))} /></div>
+                            <div className="macro-input"><div className="input-label">Fat (g)</div><input className="input-field" type="number" value={editMeal.fat || ''} onChange={e => setEditMeal(p => ({ ...p, fat: e.target.value }))} /></div>
+                        </div>
+                        <div className="input-group" style={{ marginBottom: 16 }}>
+                            <label className="input-label">Category</label>
+                            <div className="visibility-row">
+                                {[['meal','🥗 Meal'],['snack','🍪 Snack'],['etc','☕ Etc']].map(([v, label]) => (
+                                    <button key={v} className={`visibility-btn ${editMeal.meal_type === v ? 'active' : ''}`} onClick={() => setEditMeal(p => ({ ...p, meal_type: v }))}>{label}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button className="btn btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#FF3B30' }}
+                                onClick={() => handleDeleteMeal(selectedMeal)}>
+                                <Trash2 size={16} /> Delete
+                            </button>
+                            <button className="btn btn-primary" style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                                onClick={handleSaveEditMeal}>
+                                <Check size={16} /> Save
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <input className="steps-input" type="number" placeholder="Exercise calories (kcal)" value={activeCalInput} onChange={e => setActiveCalInput(e.target.value)} />
-                    <button className="weight-add-btn" onClick={saveActiveCal} style={{ padding: '0 16px', fontSize: 13 }}>Save</button>
-                </div>
-            </div>
+            )}
 
             {/* Stats Modal */}
             {showStats && (

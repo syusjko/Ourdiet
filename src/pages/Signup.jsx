@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function Signup() {
@@ -10,6 +10,7 @@ export default function Signup() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [signupSuccess, setSignupSuccess] = useState(false);
 
     async function signUp(e) {
         e.preventDefault();
@@ -19,11 +20,57 @@ export default function Signup() {
 
         setLoading(true);
         setError('');
-        const userProfile = { id: email, email, full_name: 'Test Setup User' };
-        localStorage.setItem('dummy_user', JSON.stringify(userProfile));
 
-        // Refresh page or trigger redirect
-        window.location.href = '/dashboard';
+        const { data, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: email.split('@')[0],
+                }
+            }
+        });
+
+        setLoading(false);
+
+        if (signUpError) {
+            setError(signUpError.message);
+            return;
+        }
+
+        // Check if email confirmation is required
+        if (data?.user && data?.session === null) {
+            setSignupSuccess(true);
+        } else {
+            // Redirect if email confirmation is off
+            navigate('/app/dashboard');
+        }
+    }
+
+    // Show success message after signup
+    if (signupSuccess) {
+        return (
+            <div className="auth-page">
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(48, 209, 88, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                        <CheckCircle size={40} color="#30D158" />
+                    </div>
+                    <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Check Your Email! 📬</h1>
+                    <p style={{ color: 'var(--text2)', fontSize: 15, lineHeight: 1.7, marginBottom: 8 }}>
+                        We've sent a verification link to
+                    </p>
+                    <p style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 16, marginBottom: 24 }}>
+                        {email}
+                    </p>
+                    <p style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
+                        Click the link in the email to verify your account,<br />then come back here to sign in.
+                    </p>
+                    <button className="btn btn-primary" onClick={() => navigate('/login')}>
+                        Go to Sign In
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -46,14 +93,14 @@ export default function Signup() {
 
                 <div className="input-group">
                     <div className="input-with-icon">
-                        <span className="input-icon">🔒</span>
-                        <input className="input-field" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+                        <div className="input-icon"><Lock size={20} /></div>
+                        <input className="input-field" type="password" placeholder="Password (6+ chars)" value={password} onChange={e => setPassword(e.target.value)} />
                     </div>
                 </div>
 
                 <div className="input-group">
                     <div className="input-with-icon">
-                        <span className="input-icon">🔒</span>
+                        <div className="input-icon"><Lock size={20} /></div>
                         <input className="input-field" type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                     </div>
                 </div>
@@ -69,3 +116,4 @@ export default function Signup() {
         </div>
     );
 }
+

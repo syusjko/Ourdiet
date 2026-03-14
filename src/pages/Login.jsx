@@ -16,17 +16,26 @@ export default function Login() {
         if (!email || !password) { setError('Please enter email and password'); return; }
         setLoading(true);
         setError('');
-        const userProfile = { id: email, email, full_name: 'Test Setup User' };
-        localStorage.setItem('dummy_user', JSON.stringify(userProfile));
 
-        // Refresh page or trigger redirect
-        window.location.href = '/dashboard';
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (signInError) {
+            setError(signInError.message);
+            setLoading(false);
+            return;
+        }
+
+        // Redirect after successful login
+        navigate('/app/dashboard');
     }
 
     async function signInWithGoogle() {
         const { error: err } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.origin + '/dashboard' }
+            options: { redirectTo: window.location.origin + '/app/dashboard' }
         });
         if (err) setError(err.message);
     }

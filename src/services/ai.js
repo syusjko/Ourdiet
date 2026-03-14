@@ -13,7 +13,7 @@ export async function analyzeFoodImage(base64Image) {
     try {
         const ai = getGenAI();
         if (!ai) throw new Error('API key missing');
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = ai.getGenerativeModel({ model: 'gemini-flash-latest' });
 
         const prompt = `You are a professional nutritionist analyzing food images. Follow this systematic approach:
 
@@ -109,7 +109,7 @@ export async function analyzeFoodText(foodDescription) {
     try {
         const ai = getGenAI();
         if (!ai) throw new Error('API key missing');
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = ai.getGenerativeModel({ model: 'gemini-flash-latest' });
 
         const prompt = `You are a professional nutritionist. The user describes a food they ate:
 "${foodDescription}"
@@ -149,5 +149,49 @@ Return ONLY a JSON object:
     } catch (error) {
         console.error('AI text analysis error:', error);
         return { description: foodDescription, calories: 0, protein: 0, carbs: 0, fat: 0 };
+    }
+}
+
+export async function analyzeExerciseText(exerciseDescription, bodyWeightKg) {
+    try {
+        const ai = getGenAI();
+        if (!ai) throw new Error('API key missing');
+        const model = ai.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+        const prompt = `You are a professional fitness coach. The user describes an exercise they did:
+"${exerciseDescription}"
+Their current body weight is ${bodyWeightKg || 70}kg.
+
+Based on the exercise type, intensity, and duration described (or assuming a standard 30 min session if duration is missing), estimate the calories burned.
+
+Return ONLY a JSON object exactly like this:
+{
+  "activityName": "Short standard name for the activity (e.g. Swimming)",
+  "durationMinutes": number,
+  "caloriesBurned": number
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        let jsonText = text;
+        const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+        if (codeBlockMatch) {
+            jsonText = codeBlockMatch[1];
+        } else {
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) jsonText = jsonMatch[0];
+        }
+
+        const parsed = JSON.parse(jsonText);
+        return {
+            activityName: parsed.activityName || "Exercise",
+            durationMinutes: parsed.durationMinutes || 30,
+            caloriesBurned: Math.round(parsed.caloriesBurned || 0)
+        };
+    } catch (error) {
+        console.error('AI exercise analysis error:', error);
+        return null;
     }
 }
