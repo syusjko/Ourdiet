@@ -3018,7 +3018,7 @@ textarea.input-field {
 
 .landing-page {
     min-height: 100dvh;
-    background: #FFFCF5;
+    background: #fff;
     overflow-x: hidden;
 }
 
@@ -3029,10 +3029,10 @@ textarea.input-field {
     left: 0;
     right: 0;
     z-index: 1000;
-    background: rgba(255, 252, 245, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid #eee;
 }
 
 .landing-nav-inner {
@@ -3047,7 +3047,7 @@ textarea.input-field {
 .landing-logo {
     font-size: 22px;
     font-weight: 800;
-    color: #111;
+    color: #FF2D55;
     letter-spacing: -0.5px;
 }
 
@@ -3074,16 +3074,16 @@ textarea.input-field {
 .landing-btn-primary {
     font-size: 14px;
     font-weight: 600;
-    color: #111;
+    color: #fff;
     padding: 9px 18px;
     border-radius: 8px;
-    background: #FFC000;
+    background: #111;
     text-decoration: none;
     transition: background 0.15s;
 }
 
 .landing-btn-primary:hover {
-    background: #FFB000;
+    background: #333;
 }
 
 /* Hero */
@@ -3107,7 +3107,7 @@ textarea.input-field {
 }
 
 .landing-hero-title-sub {
-    color: #FFC000;
+    color: #FF2D55;
 }
 
 .landing-hero-desc {
@@ -3126,16 +3126,16 @@ textarea.input-field {
     display: inline-block;
     font-size: 15px;
     font-weight: 600;
-    color: #111;
+    color: #fff;
     padding: 14px 36px;
     border-radius: 10px;
-    background: #FFC000;
+    background: #FF2D55;
     text-decoration: none;
     transition: background 0.15s;
 }
 
 .landing-btn-hero:hover {
-    background: #FFB000;
+    background: #e6264c;
 }
 
 /* Divider */
@@ -3153,7 +3153,7 @@ textarea.input-field {
 }
 
 .landing-section-alt {
-    background: rgba(255, 192, 0, 0.05);
+    background: #fafafa;
 }
 
 .landing-section-inner {
@@ -3166,7 +3166,7 @@ textarea.input-field {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: #FFC000;
+    color: #FF2D55;
     margin-bottom: 12px;
     text-align: center;
 }
@@ -3275,9 +3275,9 @@ textarea.input-field {
 
 /* Footer */
 .landing-footer {
-    background: #FFFCF5;
+    background: #fafafa;
     padding: 28px 24px;
-    border-top: 1px solid rgba(0,0,0,0.05);
+    border-top: 1px solid #eee;
 }
 
 .landing-footer-inner {
