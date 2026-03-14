@@ -314,6 +314,14 @@ a {
     min-height: 100dvh;
 }
 
+@media (max-width: 767px) {
+    .desktop-content {
+        margin-left: 0;
+        margin-right: 0;
+        padding-top: 0;
+    }
+}
+
 .desktop-content-inner {
     max-width: var(--content-max);
     margin: 0 auto;
@@ -3330,6 +3338,5 @@ textarea.input-field {
     .landing-btn-primary {
         padding: 8px 14px;
         font-size: 13px;
-    }
     }
 }
