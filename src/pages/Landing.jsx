@@ -17,11 +17,11 @@ export default function Landing() {
             <section className="landing-hero">
                 <div className="landing-hero-content">
                     <h1 className="landing-hero-title">
-                        Track what you eat.<br />
-                        <span className="landing-hero-title-sub">Together.</span>
+                        Eat less.<br />
+                        <span className="landing-hero-title-sub">Lose weight.</span>
                     </h1>
                     <p className="landing-hero-desc">
-                        A simple diet tracker with AI-powered food analysis and group accountability. Snap a photo, get the calories, share with your group.
+                        The principle is simple—it's the exact same science behind Wegovy. Create a calorie deficit. Track what you eat, share your progress, and stay accountable together.
                     </p>
                     <div className="landing-hero-actions">
                         <Link to="/signup" className="landing-btn-hero">Get Started — it's free</Link>
