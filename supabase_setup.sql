@@ -1,6 +1,7 @@
 -- AI Token fields for profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ai_tokens integer DEFAULT 3;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_token_reset date DEFAULT CURRENT_DATE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_pro boolean DEFAULT false;
 
 -- Create diet_groups table
 CREATE TABLE IF NOT EXISTS public.diet_groups (

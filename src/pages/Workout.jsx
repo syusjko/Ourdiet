@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { Flame, Footprints, Dumbbell, Activity, Edit, ChevronLeft, ChevronRight, TrendingUp, Zap, Sparkles, Trash2, Check, X } from 'lucide-react';
 import { analyzeExerciseText } from '../services/ai';
+import { getTokens, useTokens } from '../services/token';
 
 const calculateBMR = (weight, height, age, gender) => {
     if (!weight || !height || !age) return 0;
@@ -73,15 +74,10 @@ export default function Workout() {
             setActiveCalories(0);
         }
         
-        // AI Tokens logic (3 per day per user)
-        const tokenKey = `ai_tokens_${user.id}_${dateStr}`;
-        const storedTokens = localStorage.getItem(tokenKey);
-        if (storedTokens !== null) {
-            setAiTokens(parseInt(storedTokens));
-        } else {
-            localStorage.setItem(tokenKey, '3');
-            setAiTokens(3);
-        }
+        
+        // Fetch AI Tokens from backend instead of localStorage
+        const tokenVal = await getTokens(user.id);
+        setAiTokens(tokenVal);
     };
 
     const fetchWeeklyBurnData = async () => {
@@ -175,8 +171,8 @@ export default function Workout() {
 
     const handleAiSuggest = async () => {
         if (!aiExerciseInput.trim() || isAiLoading) return;
-        if (aiTokens <= 0) {
-            alert("You have used all 3 AI tokens for today!");
+        if (aiTokens !== 'PRO' && aiTokens <= 0) {
+            alert("You have used all AI tokens for today!");
             return;
         }
         
@@ -187,10 +183,8 @@ export default function Workout() {
             if (result && result.caloriesBurned) {
                 setAiResult(result);
                 // Deduct token on success
-                const newTokens = aiTokens - 1;
-                setAiTokens(newTokens);
-                const sd = selectedDate.toISOString().split('T')[0];
-                localStorage.setItem(`ai_tokens_${user.id}_${sd}`, newTokens.toString());
+                await useTokens(user.id);
+                setAiTokens(await getTokens(user.id));
             } else {
                 alert("Couldn't analyze the exercise. Please try again.");
             }
@@ -426,15 +420,15 @@ export default function Workout() {
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Sparkles size={16} color="#AF52DE" /> AI Assistant
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 600, background: aiTokens > 0 ? 'rgba(175, 82, 222, 0.15)' : 'rgba(255, 69, 58, 0.15)', color: aiTokens > 0 ? '#AF52DE' : '#FF453A', padding: '4px 8px', borderRadius: 12 }}>
-                        {aiTokens} tokens left
+                    <div style={{ fontSize: 11, fontWeight: 600, background: aiTokens === 'PRO' || aiTokens > 0 ? 'rgba(175, 82, 222, 0.15)' : 'rgba(255, 69, 58, 0.15)', color: aiTokens === 'PRO' || aiTokens > 0 ? '#AF52DE' : '#FF453A', padding: '4px 8px', borderRadius: 12 }}>
+                        {aiTokens === 'PRO' ? 'Unlimited PRO' : `${aiTokens} tokens left`}
                     </div>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10 }}>Describe your activity, and AI will estimate the calories burned.</div>
                 
                 <div className="workout-input-row" style={{ display: 'flex', gap: 8 }}>
-                    <input className="steps-input" style={{ flex: 1 }} type="text" placeholder="e.g. 30 mins swimming..." value={aiExerciseInput} onChange={e => setAiExerciseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiSuggest()} disabled={isAiLoading || aiTokens <= 0} />
-                    <button className="weight-add-btn" onClick={handleAiSuggest} disabled={isAiLoading || !aiExerciseInput.trim() || aiTokens <= 0} style={{ padding: '0 16px', fontSize: 13, background: aiTokens > 0 ? '#AF52DE' : 'var(--border)' }}>
+                    <input className="steps-input" style={{ flex: 1 }} type="text" placeholder="e.g. 30 mins swimming..." value={aiExerciseInput} onChange={e => setAiExerciseInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiSuggest()} disabled={isAiLoading || (aiTokens !== 'PRO' && aiTokens <= 0)} />
+                    <button className="weight-add-btn" onClick={handleAiSuggest} disabled={isAiLoading || !aiExerciseInput.trim() || (aiTokens !== 'PRO' && aiTokens <= 0)} style={{ padding: '0 16px', fontSize: 13, background: aiTokens === 'PRO' || aiTokens > 0 ? '#AF52DE' : 'var(--border)' }}>
                         {isAiLoading ? 'Wait...' : 'Ask AI'}
                     </button>
                 </div>

@@ -12,12 +12,16 @@ export async function getTokens(userId) {
     // Fetch user's profile
     const { data: profile } = await supabase
         .from('profiles')
-        .select('ai_tokens, last_token_reset')
+        .select('ai_tokens, last_token_reset, is_pro')
         .eq('id', userId)
         .single();
         
     if (!profile) return 3; // Fallback
     
+    if (profile.is_pro) {
+        return 'PRO';
+    }
+
     // Reset tokens if last_token_reset is not today
     if (profile.last_token_reset !== today) {
         await supabase
@@ -34,6 +38,8 @@ export async function useTokens(userId) {
     if (!userId) return false;
     
     const tokens = await getTokens(userId);
+    if (tokens === 'PRO') return true;
+
     if (tokens > 0) {
         // Decrease token
         await supabase

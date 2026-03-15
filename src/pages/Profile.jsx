@@ -13,6 +13,7 @@ export default function Profile() {
     const [profile, setProfile] = useState(null);
     const [showEditName, setShowEditName] = useState(false);
     const [editName, setEditName] = useState('');
+    const [isPro, setIsPro] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -27,6 +28,7 @@ export default function Profile() {
         if (data) {
             setProfile(data);
             setEditName(data.full_name || '');
+            setIsPro(data.is_pro || false);
         }
     };
 
@@ -34,8 +36,10 @@ export default function Profile() {
         if (!user || !editName.trim()) return;
         setIsLoading(true);
         try {
-            await supabase.from('profiles').update({ full_name: editName }).eq('id', user.id);
+            await supabase.from('profiles').update({ full_name: editName, is_pro: isPro }).eq('id', user.id);
             await fetchProfile();
+            // trigger token update in layout
+            window.dispatchEvent(new Event('tokens_updated'));
             setShowEditName(false);
         } catch (error) {
             alert('Failed to update name');
@@ -196,6 +200,14 @@ export default function Profile() {
                             <label className="input-label">Email Address</label>
                             <input className="input-field" value={user?.email || ''} disabled />
                             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Email cannot be changed directly here.</div>
+                        </div>
+
+                        <div className="input-group" style={{ textAlign: 'left', marginTop: 16 }}>
+                            <label className="input-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>PRO Account (Unlimited AI)</span>
+                                <input type="checkbox" checked={isPro} onChange={e => setIsPro(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                            </label>
+                            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Enable PRO to get unlimited AI workout suggestions!</div>
                         </div>
                         
                         <button className="btn btn-primary" onClick={saveName} disabled={isLoading} style={{ marginTop: 20 }}>

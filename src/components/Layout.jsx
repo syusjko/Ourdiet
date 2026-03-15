@@ -203,7 +203,7 @@ export default function Layout() {
                 <div className="desktop-header-right">
                     <div style={{ marginRight: 16, fontSize: 14, fontWeight: 'bold', color: 'var(--primary)' }}>
                         <Sparkles size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                        {aiTokens} Tokens
+                        {aiTokens === 'PRO' ? 'PRO' : `${aiTokens} Tokens`}
                     </div>
                     <div className="desktop-header-search" style={{ position: 'relative' }}>
                         <Search size={16} color="var(--text2)" />
@@ -285,7 +285,7 @@ export default function Layout() {
                     <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center' }}>
                         <div style={{ marginRight: 12, fontSize: 13, fontWeight: 'bold', color: 'var(--primary)', display: 'flex', alignItems: 'center' }}>
                             <Sparkles size={14} style={{ marginRight: 4 }} />
-                            {aiTokens}
+                            {aiTokens === 'PRO' ? 'PRO' : aiTokens}
                         </div>
                         <button className="header-btn"><Bell size={18} /></button>
                     </div>
