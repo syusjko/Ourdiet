@@ -85,7 +85,7 @@ export default function Groups() {
         if (!members || members.length === 0) return;
         const userIds = members.map(m => m.user_id);
 
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight, target_calories, target_burn').in('id', userIds);
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight').in('id', userIds);
         setGroupMembersProfile(profiles || []);
 
         const todayDate = new Date().toISOString().split('T')[0];
