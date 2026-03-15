@@ -215,20 +215,20 @@ ${isDieting ? `- Target Weight: ${profile.target_weight} kg (Needs to lose ${wei
 - Gender: ${profile?.gender || 'Unknown'}
 
 Guidelines:
-1. Speak in friendly Korean (요/다/까 style but energetic).
+1. Speak in natural, friendly English.
 2. Keep it to a maximum of 3 short sentences.
-3. Don't be robotic. Do not include quotes, intro greetings like '안녕!', just give the message directly.
+3. Don't be robotic. Do not include quotes, intro greetings like 'Hi!', just give the message directly.
 4. Encourage them to hit their daily deficit target, log their meals today, or drink water.
 
-Make it feel like a real iPhone notification from a caring trainer.
+Make it feel like a minimalist push notification from a caring trainer.
 
-Return ONLY the plain text Korean message. No JSON, no formatting block.`;
+Return ONLY the plain text English message. No JSON, no formatting block.`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text().trim();
     } catch (error) {
         console.error('AI trainer message error:', error);
-        return "좋은 아침입니다! 오늘도 식단 기록 잊지 마시고, 활기찬 하루 보내세요! 파이팅입니다 💪"; // Fallback message
+        return "Good morning! Don't forget to log your meals today and stay hydrated. You've got this!";
     }
 }

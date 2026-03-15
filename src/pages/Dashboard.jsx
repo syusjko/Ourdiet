@@ -314,24 +314,26 @@ export default function Dashboard() {
                     margin: '0 20px 16px',
                     padding: '16px',
                     borderRadius: '16px',
-                    background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 69, 58, 0.05))',
-                    border: '1px solid rgba(255, 149, 0, 0.2)',
+                    background: 'var(--bg-secondary, #F4F4F5)',
+                    border: '1px solid var(--border)',
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '12px'
                 }}>
                     <div style={{
                         width: '32px', height: '32px', borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #FF9500, #FF453A)',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        color: 'white'
+                        color: 'var(--primary, #000)'
                     }}>
                         <Sparkles size={16} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#FF453A', marginBottom: '4px' }}>AI Daily Trainer</div>
-                        <div style={{ fontSize: '15px', color: 'var(--text)', lineHeight: 1.5 }}>
-                            {isGeneratingMessage ? <span style={{ color: 'var(--text2)', fontStyle: 'italic' }}>Creating your daily review...</span> : trainerMessage}
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>AI Daily Trainer</div>
+                        <div style={{ fontSize: '14px', color: 'var(--text2)', lineHeight: 1.5 }}>
+                            {isGeneratingMessage ? <span style={{ fontStyle: 'italic' }}>Creating your daily review...</span> : trainerMessage}
                         </div>
                     </div>
                 </div>
