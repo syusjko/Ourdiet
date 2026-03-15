@@ -219,7 +219,12 @@ export default function Groups() {
         const steps = workout ? workout.steps : 0;
         const exerciseCals = workout ? (workout.exercise_calories || 0) : 0;
         const burned = Math.round(steps * weight * 0.0005) + exerciseCals;
-        return { eaten, burned, targetEaten: profile?.target_calories || 2000, targetBurned: profile?.target_burn || 500 };
+        return { 
+            eaten, 
+            burned, 
+            targetEaten: profile?.target_calories ? Number(profile.target_calories) : 2000, 
+            targetBurned: profile?.target_burn ? Number(profile.target_burn) : 500 
+        };
     };
 
     const categoryContents = {
