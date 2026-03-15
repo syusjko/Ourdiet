@@ -90,16 +90,47 @@ export default function Groups() {
 
     const createGroup = async () => {
         if (!user || !name) return;
-        await supabase.from('diet_groups').insert({
-            name, description, category, password,
-            target_value: parseFloat(targetValue) || null,
-            leader_id: user.id, is_public: true,
-        });
-        const { data: created } = await supabase.from('diet_groups').select('id').eq('leader_id', user.id).order('created_at', { ascending: false }).limit(1).single();
-        if (created) await supabase.from('group_members').insert({ group_id: created.id, user_id: user.id });
-        setShowCreate(false);
-        setName(''); setDescription(''); setCategory('calorie'); setTargetValue(''); setPassword('');
-        fetchGroups();
+        
+        try {
+            const { data: created, error } = await supabase.from('diet_groups').insert({
+                name, 
+                description, 
+                category, 
+                password: password || null,
+                target_value: parseFloat(targetValue) || null,
+                leader_id: user.id, 
+                is_public: !password,
+            }).select().single();
+
+            if (error) {
+                console.error("Error creating group:", error);
+                alert("그룹 생성에 실패했습니다: " + error.message);
+                return;
+            }
+
+            if (created) {
+                const { error: memberError } = await supabase.from('group_members').insert({ 
+                    group_id: created.id, 
+                    user_id: user.id 
+                });
+                
+                if (memberError) {
+                    console.error("Error adding to members:", memberError);
+                    alert("멤버 추가에 실패했습니다: " + memberError.message);
+                }
+            }
+
+            setShowCreate(false);
+            setName(''); 
+            setDescription(''); 
+            setCategory('calorie'); 
+            setTargetValue(''); 
+            setPassword('');
+            fetchGroups();
+        } catch (err) {
+            console.error("Exception in createGroup:", err);
+            alert("알 수 없는 오류가 발생했습니다.");
+        }
     };
 
     const joinGroup = async (group) => {
