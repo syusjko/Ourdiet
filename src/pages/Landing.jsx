@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowRight, Sparkles, TrendingDown, Zap, Users, Camera, ChevronDown } from 'lucide-react';
 
 const STEPS = ['info', 'goal', 'result'];
@@ -14,7 +14,6 @@ function CalorieCalculator({ onGoSignup }) {
     const [weeks, setWeeks] = useState('8');
     const [result, setResult] = useState(null);
     const [animateResult, setAnimateResult] = useState(false);
-    const resultRef = useRef(null);
 
     const canGoNext = () => {
         if (step === 0) return age && height && weight;
@@ -34,33 +33,21 @@ function CalorieCalculator({ onGoSignup }) {
         if (step === 0) {
             setStep(1);
         } else if (step === 1) {
-            // Calculate
             const bmr = calculateBMR();
-            const tdee = Math.round(bmr * 1.4); // light activity multiplier
+            const tdee = Math.round(bmr * 1.4);
             const totalKgToLose = parseFloat(weight) - parseFloat(targetWeight);
-            const totalCalToLose = totalKgToLose * 7700; // 1kg fat ≈ 7700 kcal
+            const totalCalToLose = totalKgToLose * 7700;
             const totalDays = parseInt(weeks) * 7;
             const dailyDeficit = Math.round(totalCalToLose / totalDays);
             const dailyTarget = Math.max(tdee - dailyDeficit, 1200);
-            setResult({
-                bmr,
-                tdee,
-                totalKgToLose: totalKgToLose.toFixed(1),
-                dailyDeficit,
-                dailyTarget,
-                weeks: parseInt(weeks),
-                isSafe: dailyDeficit <= 1000,
-            });
+            setResult({ bmr, tdee, totalKgToLose: totalKgToLose.toFixed(1), dailyDeficit, dailyTarget, weeks: parseInt(weeks), isSafe: dailyDeficit <= 1000 });
             setStep(2);
             setTimeout(() => setAnimateResult(true), 100);
         }
     };
 
     const handleBack = () => {
-        if (step > 0) {
-            setStep(step - 1);
-            setAnimateResult(false);
-        }
+        if (step > 0) { setStep(step - 1); setAnimateResult(false); }
     };
 
     return (
@@ -72,45 +59,42 @@ function CalorieCalculator({ onGoSignup }) {
                     ))}
                 </div>
                 <div className="lp-calc-step-label">
-                    {step === 0 && 'About You'}
-                    {step === 1 && 'Your Goal'}
-                    {step === 2 && 'Your Plan'}
+                    {step === 0 && '기본 정보'}
+                    {step === 1 && '목표 설정'}
+                    {step === 2 && '나의 플랜'}
                 </div>
             </div>
 
             <div className="lp-calc-body">
-                {/* Step 1: Basic Info */}
                 {step === 0 && (
                     <div className="lp-calc-form lp-fade-in">
-                        <h3 className="lp-calc-title">Let's start with the basics</h3>
-                        <p className="lp-calc-sub">Enter your body metrics to calculate your daily calorie needs.</p>
-
+                        <h3 className="lp-calc-title">내 정보 입력</h3>
+                        <p className="lp-calc-sub">기초대사량 계산을 위해 기본 정보를 입력해주세요.</p>
                         <div className="lp-calc-gender">
                             <button className={`lp-gender-btn ${gender === 'male' ? 'active' : ''}`} onClick={() => setGender('male')}>
-                                <span>🙋‍♂️</span> Male
+                                <span>🙋‍♂️</span> 남성
                             </button>
                             <button className={`lp-gender-btn ${gender === 'female' ? 'active' : ''}`} onClick={() => setGender('female')}>
-                                <span>🙋‍♀️</span> Female
+                                <span>🙋‍♀️</span> 여성
                             </button>
                         </div>
-
                         <div className="lp-calc-fields">
                             <div className="lp-field">
-                                <label>Age</label>
+                                <label>나이</label>
                                 <div className="lp-field-input">
                                     <input type="number" placeholder="25" value={age} onChange={e => setAge(e.target.value)} />
-                                    <span className="lp-field-unit">years</span>
+                                    <span className="lp-field-unit">세</span>
                                 </div>
                             </div>
                             <div className="lp-field">
-                                <label>Height</label>
+                                <label>키</label>
                                 <div className="lp-field-input">
                                     <input type="number" placeholder="170" value={height} onChange={e => setHeight(e.target.value)} />
                                     <span className="lp-field-unit">cm</span>
                                 </div>
                             </div>
                             <div className="lp-field">
-                                <label>Weight</label>
+                                <label>체중</label>
                                 <div className="lp-field-input">
                                     <input type="number" placeholder="75" value={weight} onChange={e => setWeight(e.target.value)} />
                                     <span className="lp-field-unit">kg</span>
@@ -120,105 +104,92 @@ function CalorieCalculator({ onGoSignup }) {
                     </div>
                 )}
 
-                {/* Step 2: Goal */}
                 {step === 1 && (
                     <div className="lp-calc-form lp-fade-in">
-                        <h3 className="lp-calc-title">Set your target</h3>
-                        <p className="lp-calc-sub">How much weight do you want to lose, and how quickly?</p>
-
+                        <h3 className="lp-calc-title">목표를 설정하세요</h3>
+                        <p className="lp-calc-sub">얼마나 빼고 싶은지, 기간은 어떻게 할지 정해주세요.</p>
                         <div className="lp-calc-fields">
                             <div className="lp-field">
-                                <label>Current Weight</label>
+                                <label>현재 체중</label>
                                 <div className="lp-field-input">
                                     <input type="number" value={weight} disabled style={{ opacity: 0.5 }} />
                                     <span className="lp-field-unit">kg</span>
                                 </div>
                             </div>
                             <div className="lp-field">
-                                <label>Target Weight</label>
+                                <label>목표 체중</label>
                                 <div className="lp-field-input">
                                     <input type="number" placeholder="68" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} />
                                     <span className="lp-field-unit">kg</span>
                                 </div>
                             </div>
                             <div className="lp-field">
-                                <label>Timeline</label>
+                                <label>기간</label>
                                 <div className="lp-field-input">
                                     <select value={weeks} onChange={e => setWeeks(e.target.value)} className="lp-select">
-                                        <option value="4">4 weeks</option>
-                                        <option value="8">8 weeks</option>
-                                        <option value="12">12 weeks</option>
-                                        <option value="16">16 weeks</option>
-                                        <option value="24">24 weeks</option>
+                                        <option value="4">4주</option>
+                                        <option value="8">8주</option>
+                                        <option value="12">12주</option>
+                                        <option value="16">16주</option>
+                                        <option value="24">24주</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
-
                         {targetWeight && parseFloat(targetWeight) >= parseFloat(weight) && (
-                            <div className="lp-calc-warn">Target weight should be lower than your current weight.</div>
+                            <div className="lp-calc-warn">목표 체중은 현재 체중보다 낮아야 합니다.</div>
                         )}
                     </div>
                 )}
 
-                {/* Step 3: Result */}
                 {step === 2 && result && (
-                    <div className={`lp-calc-result lp-fade-in ${animateResult ? 'show' : ''}`} ref={resultRef}>
+                    <div className={`lp-calc-result lp-fade-in ${animateResult ? 'show' : ''}`}>
                         <div className="lp-result-hero">
                             <div className="lp-result-number">{result.dailyTarget}</div>
-                            <div className="lp-result-unit">kcal / day</div>
-                            <div className="lp-result-label">Your daily calorie budget</div>
+                            <div className="lp-result-unit">kcal / 일</div>
+                            <div className="lp-result-label">하루 칼로리 목표</div>
                         </div>
-
                         <div className="lp-result-grid">
                             <div className="lp-result-card">
                                 <div className="lp-result-card-value">{result.bmr}</div>
-                                <div className="lp-result-card-label">Base Metabolism<br />(BMR)</div>
+                                <div className="lp-result-card-label">기초대사량<br />(BMR)</div>
                             </div>
                             <div className="lp-result-card">
                                 <div className="lp-result-card-value">{result.tdee}</div>
-                                <div className="lp-result-card-label">Maintenance<br />(TDEE)</div>
+                                <div className="lp-result-card-label">유지 칼로리<br />(TDEE)</div>
                             </div>
                             <div className="lp-result-card accent">
                                 <div className="lp-result-card-value">-{result.dailyDeficit}</div>
-                                <div className="lp-result-card-label">Daily Deficit<br />Needed</div>
+                                <div className="lp-result-card-label">일일 적자<br />필요량</div>
                             </div>
                         </div>
-
                         <div className="lp-result-summary">
-                            <p>To reach <strong>{targetWeight}kg</strong> in <strong>{result.weeks} weeks</strong>, you need to create 
-                            a <strong>{result.dailyDeficit} kcal</strong> daily deficit.</p>
+                            <p><strong>{result.weeks}주</strong> 안에 <strong>{targetWeight}kg</strong>에 도달하려면 매일 <strong>{result.dailyDeficit} kcal</strong>의 적자가 필요합니다.</p>
                             {!result.isSafe && (
-                                <div className="lp-result-warn">
-                                    ⚠️ This pace is quite aggressive. Consider extending your timeline for healthier weight loss (recommended: max 500-750 kcal deficit/day).
-                                </div>
+                                <div className="lp-result-warn">⚠️ 다소 급격한 페이스입니다. 건강한 감량을 위해 기간을 늘려보세요 (권장: 일 500~750 kcal 적자).</div>
                             )}
                         </div>
-
                         <div className="lp-result-cta">
-                            <p className="lp-result-cta-text">Track meals, exercise, and hit your daily target with OurDiet.</p>
-                            <Link to="/signup" className="lp-btn-signup" onClick={onGoSignup}>
-                                Start tracking for free <ArrowRight size={16} />
+                            <p className="lp-result-cta-text">OurDiet으로 식단, 운동을 추적하고 목표를 달성하세요.</p>
+                            <Link to="/signup" className="lp-btn-signup">
+                                무료로 시작하기 <ArrowRight size={16} />
                             </Link>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Actions */}
             <div className="lp-calc-actions">
                 {step > 0 && step < 2 && (
-                    <button className="lp-calc-back" onClick={handleBack}>← Back</button>
+                    <button className="lp-calc-back" onClick={handleBack}>← 이전</button>
                 )}
                 {step < 2 && (
                     <button className="lp-calc-next" onClick={handleNext} disabled={!canGoNext()}>
-                        {step === 1 ? 'Calculate' : 'Next'} <ArrowRight size={16} />
+                        {step === 1 ? '계산하기' : '다음'} <ArrowRight size={16} />
                     </button>
                 )}
                 {step === 2 && (
-                    <button className="lp-calc-back" onClick={() => { setStep(0); setAnimateResult(false); }}>
-                        ↻ Start over
-                    </button>
+                    <button className="lp-calc-back" onClick={() => { setStep(0); setAnimateResult(false); }}>↻ 다시 계산</button>
                 )}
             </div>
         </div>
@@ -226,7 +197,6 @@ function CalorieCalculator({ onGoSignup }) {
 }
 
 export default function Landing() {
-    const navigate = useNavigate();
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -235,10 +205,6 @@ export default function Landing() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const scrollToCalc = () => {
-        document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
-    };
-
     return (
         <div className="lp">
             {/* Nav */}
@@ -246,50 +212,53 @@ export default function Landing() {
                 <div className="lp-nav-inner">
                     <div className="lp-logo">OurDiet</div>
                     <div className="lp-nav-right">
-                        <Link to="/login" className="lp-nav-link">Log In</Link>
-                        <Link to="/signup" className="lp-btn-nav">Get Started</Link>
+                        <Link to="/login" className="lp-nav-link">로그인</Link>
+                        <Link to="/signup" className="lp-btn-nav">시작하기</Link>
                     </div>
                 </div>
             </nav>
 
-            {/* Hero */}
+            {/* Hero — left text + right calculator */}
             <section className="lp-hero">
-                <div className="lp-hero-glow" />
-                <div className="lp-hero-content">
-                    <div className="lp-hero-badge">
-                        <Sparkles size={13} /> Science-based weight management
-                    </div>
-                    <h1 className="lp-hero-title">
-                        The simplest way to<br />
-                        <span className="lp-gradient-text">lose weight.</span>
-                    </h1>
-                    <p className="lp-hero-desc">
-                        No magic pills. Just the same calorie deficit science behind 
-                        Wegovy &amp; Ozempic — powered by AI tracking, group accountability, and you.
-                    </p>
-                    <div className="lp-hero-btns">
-                        <button className="lp-btn-hero" onClick={scrollToCalc}>
-                            Try the Calculator <ArrowRight size={16} />
-                        </button>
-                        <Link to="/signup" className="lp-btn-hero-alt">
-                            Sign Up Free
-                        </Link>
-                    </div>
-                </div>
-                <div className="lp-scroll-hint" onClick={scrollToCalc}>
-                    <ChevronDown size={20} />
-                </div>
-            </section>
+                <div className="lp-hero-inner">
+                    <div className="lp-hero-left">
+                        <div className="lp-hero-badge">
+                            <Sparkles size={13} /> 과학 기반 체중 관리
+                        </div>
+                        <h1 className="lp-hero-title">
+                            안먹으면<br />
+                            <span className="lp-gradient-text">빠진다.</span>
+                        </h1>
+                        <p className="lp-hero-desc">
+                            위고비·마운자로와 똑같은 원리, 칼로리 적자.
+                            마법의 약은 없습니다. AI 식단 추적과 그룹 동기부여로 함께 빼세요.
+                        </p>
+                        <div className="lp-hero-btns">
+                            <Link to="/signup" className="lp-btn-hero">
+                                무료로 시작하기 <ArrowRight size={16} />
+                            </Link>
+                        </div>
 
-            {/* Interactive Calculator Section */}
-            <section className="lp-section lp-section-calc">
-                <div className="lp-section-inner">
-                    <div className="lp-overline">Try It Now</div>
-                    <h2 className="lp-section-title">How many calories should <em>you</em> eat?</h2>
-                    <p className="lp-section-sub">
-                        Enter your info and see exactly how many calories you need per day to reach your goal weight — no signup required.
-                    </p>
-                    <CalorieCalculator onGoSignup={() => {}} />
+                        {/* Trust indicators */}
+                        <div className="lp-hero-trust">
+                            <div className="lp-trust-item">
+                                <Zap size={14} /> AI 칼로리 분석
+                            </div>
+                            <div className="lp-trust-item">
+                                <Users size={14} /> 그룹 다이어트
+                            </div>
+                            <div className="lp-trust-item">
+                                <TrendingDown size={14} /> 체중 트래킹
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="lp-hero-right">
+                        <div className="lp-hero-calc-label">
+                            <Sparkles size={14} /> 지금 바로 테스트해보세요
+                        </div>
+                        <CalorieCalculator />
+                    </div>
                 </div>
             </section>
 
@@ -297,41 +266,41 @@ export default function Landing() {
             <section className="lp-section">
                 <div className="lp-section-inner">
                     <div className="lp-overline">How It Works</div>
-                    <h2 className="lp-section-title">Three steps to your goal</h2>
+                    <h2 className="lp-section-title">세 단계로 시작하세요</h2>
                     <div className="lp-steps">
                         <div className="lp-step-card">
                             <div className="lp-step-icon"><Camera size={24} /></div>
                             <div className="lp-step-num">01</div>
-                            <h3 className="lp-step-title">Log your meals</h3>
-                            <p className="lp-step-desc">Snap a photo or type what you ate. AI identifies the food and calculates calories instantly.</p>
+                            <h3 className="lp-step-title">식사를 기록하세요</h3>
+                            <p className="lp-step-desc">사진을 찍거나 텍스트로 입력하면 AI가 자동으로 칼로리와 영양소를 분석합니다.</p>
                         </div>
                         <div className="lp-step-card">
                             <div className="lp-step-icon"><TrendingDown size={24} /></div>
                             <div className="lp-step-num">02</div>
-                            <h3 className="lp-step-title">Track your deficit</h3>
-                            <p className="lp-step-desc">See your daily balance of calories in vs. out. BMR, exercise, steps — all calculated automatically.</p>
+                            <h3 className="lp-step-title">적자를 추적하세요</h3>
+                            <p className="lp-step-desc">섭취 칼로리 vs 소모 칼로리를 한눈에. BMR, 운동, 걸음수 모두 자동 계산됩니다.</p>
                         </div>
                         <div className="lp-step-card">
                             <div className="lp-step-icon"><Users size={24} /></div>
                             <div className="lp-step-num">03</div>
-                            <h3 className="lp-step-title">Stay accountable</h3>
-                            <p className="lp-step-desc">Join diet groups, compare progress, and motivate each other through daily check-ins.</p>
+                            <h3 className="lp-step-title">함께 다이어트하세요</h3>
+                            <p className="lp-step-desc">다이어트 그룹에 참여하고, 서로의 진행상황을 공유하며 동기부여하세요.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             {/* Features */}
-            <section className="lp-section lp-section-dark">
+            <section className="lp-section lp-section-tinted">
                 <div className="lp-section-inner">
-                    <div className="lp-overline" style={{ color: '#FF9500' }}>Features</div>
-                    <h2 className="lp-section-title" style={{ color: '#fff' }}>Everything you need</h2>
+                    <div className="lp-overline">Features</div>
+                    <h2 className="lp-section-title">필요한 모든 기능</h2>
                     <div className="lp-features">
                         {[
-                            { icon: <Sparkles size={20} />, title: 'AI Food Analysis', desc: 'Photo or text — our AI breaks down calories, protein, carbs, and fat in seconds.' },
-                            { icon: <TrendingDown size={20} />, title: 'Weight Tracking', desc: 'Log daily weigh-ins and visualize your progress with beautiful trend charts.' },
-                            { icon: <Zap size={20} />, title: 'Workout & Steps', desc: 'Track exercise calories and steps. See your total daily burn at a glance.' },
-                            { icon: <Users size={20} />, title: 'Group Diet', desc: 'Create or join groups. Share stats, compare progress, and chat — all in-app.' },
+                            { icon: <Sparkles size={20} />, title: 'AI 식단 분석', desc: '사진 또는 텍스트 — AI가 몇 초 만에 칼로리, 단백질, 탄수화물, 지방을 분석합니다.' },
+                            { icon: <TrendingDown size={20} />, title: '체중 트래킹', desc: '매일 체중을 기록하고 트렌드 차트로 변화를 시각적으로 확인하세요.' },
+                            { icon: <Zap size={20} />, title: '운동 & 걸음수', desc: '운동 칼로리와 걸음수를 추적하세요. 하루 총 소모량을 한눈에 볼 수 있습니다.' },
+                            { icon: <Users size={20} />, title: '그룹 다이어트', desc: '그룹을 만들거나 참여하세요. 통계 비교, 진행상황 공유, 채팅까지 모두 인앱으로.' },
                         ].map((f, i) => (
                             <div key={i} className="lp-feature-card">
                                 <div className="lp-feature-icon">{f.icon}</div>
@@ -346,10 +315,10 @@ export default function Landing() {
             {/* Final CTA */}
             <section className="lp-cta">
                 <div className="lp-cta-inner">
-                    <h2 className="lp-cta-title">Ready to start your journey?</h2>
-                    <p className="lp-cta-desc">Free forever. No credit card required. Just science.</p>
+                    <h2 className="lp-cta-title">지금 시작할 준비 되셨나요?</h2>
+                    <p className="lp-cta-desc">영원히 무료. 신용카드 불필요. 과학만 있으면 됩니다.</p>
                     <Link to="/signup" className="lp-btn-hero lp-btn-cta">
-                        Create Your Free Account <ArrowRight size={16} />
+                        무료 계정 만들기 <ArrowRight size={16} />
                     </Link>
                 </div>
             </section>
@@ -358,7 +327,7 @@ export default function Landing() {
             <footer className="lp-footer">
                 <div className="lp-footer-inner">
                     <div className="lp-logo" style={{ fontSize: 16 }}>OurDiet</div>
-                    <div className="lp-footer-copy">© 2026 OurDiet. Built with science & accountability.</div>
+                    <div className="lp-footer-copy">© 2026 OurDiet</div>
                 </div>
             </footer>
         </div>
