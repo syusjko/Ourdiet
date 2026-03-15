@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 export default function Signup() {
     const navigate = useNavigate();
@@ -75,6 +76,7 @@ export default function Signup() {
 
     return (
         <div className="auth-page">
+            <SEO title="Sign Up" description="Create your free OurDiet account and start your healthy journey together." url="/signup" />
             <div className="auth-header">
                 <div className="auth-logo">OurDiet</div>
                 <h1 className="auth-title">Join OurDiet</h1>

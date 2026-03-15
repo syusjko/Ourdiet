@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -42,6 +43,7 @@ export default function Login() {
 
     return (
         <div className="auth-page">
+            <SEO title="Log In" description="Sign in to your OurDiet account to track your health goals." url="/login" />
             <div className="auth-header">
                 <div className="auth-logo">OurDiet</div>
                 <h1 className="auth-title">Welcome Back</h1>

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ArrowRight, TrendingDown, Zap, Users, Camera } from 'lucide-react';
+import SEO from '../components/SEO';
 
 const STEPS = ['info', 'goal', 'result'];
 
@@ -207,6 +208,11 @@ export default function Landing() {
 
     return (
         <div className="lp">
+            <SEO 
+                title="Eat less. Lose weight." 
+                description="The same calorie deficit science behind Wegovy & Ozempic — no magic pills. AI-powered meal tracking and group accountability to help you stay on track."
+                url="/"
+            />
             {/* Nav */}
             <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
                 <div className="lp-nav-inner">
