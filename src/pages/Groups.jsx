@@ -80,12 +80,30 @@ export default function Groups() {
         const { data: members } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
         const myGroupIds = members?.map(m => m.group_id) || [];
 
-        const { data: allGroups } = await supabase.from('diet_groups').select('*, group_members(count)').eq('is_public', true).order('created_at', { ascending: false });
-
-        if (allGroups) {
-            setGroups(allGroups.filter(g => !myGroupIds.includes(g.id)));
-            setMyGroups(allGroups.filter(g => myGroupIds.includes(g.id) || g.leader_id === user.id));
+        // 1. 내 그룹 가져오기 (비공개 그룹 포함)
+        let myGroupsData = [];
+        if (myGroupIds.length > 0) {
+            const { data } = await supabase
+                .from('diet_groups')
+                .select('*, group_members(count)')
+                .in('id', myGroupIds)
+                .order('created_at', { ascending: false });
+            myGroupsData = data || [];
         }
+
+        // 2. 새로운 그룹 목록 가져오기 (공개된 것만)
+        const { data: allPublicGroups } = await supabase
+            .from('diet_groups')
+            .select('*, group_members(count)')
+            .eq('is_public', true)
+            .order('created_at', { ascending: false });
+
+        if (allPublicGroups) {
+            // 내가 가입하지 않은 공개 그룹만 'Discover' 탭에 표시
+            setGroups(allPublicGroups.filter(g => !myGroupIds.includes(g.id)));
+        }
+        
+        setMyGroups(myGroupsData);
     };
 
     const createGroup = async () => {
