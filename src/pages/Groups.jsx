@@ -4,6 +4,33 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, MessageCircle, Send, Lock, Search } from 'lucide-react';
 
+function MiniActivityRings({ size = 50, move = 0, exercise = 0 }) {
+    const center = size / 2;
+    const strokeWidth = 5;
+    const colors = [
+        { color: '#FA114F', progress: move, radius: (size - strokeWidth) / 2 },
+        { color: '#34C759', progress: exercise, radius: (size - strokeWidth) / 2 - 8 },
+    ];
+
+    return (
+        <svg width={size} height={size} className="rings-container" style={{ minWidth: size }}>
+            {colors.map((ring, i) => {
+                const circumference = 2 * Math.PI * ring.radius;
+                const offset = circumference * (1 - Math.min(ring.progress, 1));
+                return (
+                    <g key={i}>
+                        <circle cx={center} cy={center} r={ring.radius} fill="none" stroke={ring.color} strokeWidth={strokeWidth} opacity={0.2} />
+                        <circle cx={center} cy={center} r={ring.radius} fill="none" stroke={ring.color} strokeWidth={strokeWidth}
+                            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+                            transform={`rotate(-90 ${center} ${center})`}
+                            style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+                    </g>
+                );
+            })}
+        </svg>
+    );
+}
+
 export default function Groups() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -19,6 +46,7 @@ export default function Groups() {
     const [category, setCategory] = useState('calorie');
     const [targetValue, setTargetValue] = useState('');
     const [password, setPassword] = useState('');
+    const [filterCategory, setFilterCategory] = useState('all');
 
     const [groupActivity, setGroupActivity] = useState([]);
     const [groupMembersProfile, setGroupMembersProfile] = useState([]);
@@ -57,7 +85,7 @@ export default function Groups() {
         if (!members || members.length === 0) return;
         const userIds = members.map(m => m.user_id);
 
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight').in('id', userIds);
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight, target_calories, target_burn').in('id', userIds);
         setGroupMembersProfile(profiles || []);
 
         const todayDate = new Date().toISOString().split('T')[0];
@@ -191,7 +219,7 @@ export default function Groups() {
         const steps = workout ? workout.steps : 0;
         const exerciseCals = workout ? (workout.exercise_calories || 0) : 0;
         const burned = Math.round(steps * weight * 0.0005) + exerciseCals;
-        return { eaten, burned };
+        return { eaten, burned, targetEaten: profile?.target_calories || 2000, targetBurned: profile?.target_burn || 500 };
     };
 
     const categoryContents = {
@@ -237,14 +265,25 @@ export default function Groups() {
                                 const memberIsLeader = profile.id === activeGroup.leader_id;
                                 return (
                                     <div key={profile.id} className="group-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                                {memberIsLeader && <Crown size={16} color="#FF9500" />}
-                                                {memberName}
-                                            </div>
-                                            <div style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', gap: 12 }}>
-                                                <span style={{ color: '#FA114F' }}>섭취: {stats.eaten} kcal</span>
-                                                <span style={{ color: '#34C759' }}>소모: {stats.burned} kcal</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                            <MiniActivityRings size={50} move={stats.eaten / stats.targetEaten} exercise={stats.burned / stats.targetBurned} />
+                                            <div>
+                                                <div style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                                    {memberIsLeader && <Crown size={16} color="#FF9500" />}
+                                                    {memberName}
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
+                                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FA114F' }} />
+                                                        <span>섭취:</span>
+                                                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{stats.eaten}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
+                                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34C759' }} />
+                                                        <span>소모:</span>
+                                                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{stats.burned}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         {(isLeader && profile.id !== user.id) && (
@@ -349,10 +388,30 @@ export default function Groups() {
                 </div>
             </div>
 
-            {myGroups.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px', marginBottom: 16 }} className="hide-scrollbar">
+                <button 
+                    className={`gender-btn ${filterCategory === 'all' ? 'active' : ''}`} 
+                    onClick={() => setFilterCategory('all')}
+                    style={filterCategory === 'all' ? { background: 'var(--primary)', color: '#fff', padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' } : { padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' }}
+                >
+                    All
+                </button>
+                {Object.keys(categoryContents).map(key => (
+                    <button 
+                        key={key} 
+                        className={`gender-btn ${filterCategory === key ? 'active' : ''}`} 
+                        onClick={() => setFilterCategory(key)}
+                        style={filterCategory === key ? { background: categoryColors[key], color: '#fff', padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' } : { padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' }}
+                    >
+                        {categoryContents[key]}
+                    </button>
+                ))}
+            </div>
+
+            {myGroups.filter(g => filterCategory === 'all' || g.category === filterCategory).length > 0 && (
                 <>
                     <div className="section-title" style={{ marginTop: 16 }}>My Groups</div>
-                    {myGroups.map(g => (
+                    {myGroups.filter(g => filterCategory === 'all' || g.category === filterCategory).map(g => (
                         <div key={g.id} className="group-card" onClick={() => navigate(`/app/groups?id=${g.id}`)} style={{ cursor: 'pointer' }}>
                             <div className="group-header">
                                 <div className="group-name">{g.name}</div>
@@ -370,10 +429,10 @@ export default function Groups() {
                 </>
             )}
 
-            {groups.length > 0 && (
+            {groups.filter(g => filterCategory === 'all' || g.category === filterCategory).length > 0 && (
                 <>
                     <div className="section-title" style={{ marginTop: 16 }}>Discover Groups</div>
-                    {groups.map(g => (
+                    {groups.filter(g => filterCategory === 'all' || g.category === filterCategory).map(g => (
                         <div key={g.id} className="group-card">
                             <div className="group-header">
                                 <div className="group-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
