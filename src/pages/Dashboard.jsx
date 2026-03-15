@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { Utensils, ChevronLeft, ChevronRight, Plus, Clock, Trash2, X, Check } from 'lucide-react';
+import { Utensils, ChevronLeft, ChevronRight, Plus, Clock, Trash2, X, Check, Sparkles } from 'lucide-react';
+import { generateDailyTrainerMessage } from '../services/ai';
 
 const calculateBMR = (weight, height, age, gender) => {
     if (!weight || !height || !age) return 0;
@@ -88,6 +89,10 @@ export default function Dashboard() {
     const [weeklyData, setWeeklyData] = useState([]);
     const [calendarDays, setCalendarDays] = useState([]);
     const scrollRef = useRef(null);
+    
+    // AI Trainer Message State
+    const [trainerMessage, setTrainerMessage] = useState(null);
+    const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
 
     const isToday = (d) => d.toDateString() === new Date().toDateString();
     const isSelected = (d) => d.toDateString() === selectedDate.toDateString();
@@ -143,6 +148,35 @@ export default function Dashboard() {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (data) setProfile(data);
     };
+
+    // Trainer Message Effect
+    useEffect(() => {
+        if (!user || !profile || trainerMessage) return;
+        
+        const todayStr = new Date().toDateString();
+        const cacheKey = `ai_trainer_${user.id}_${todayStr}`;
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+            setTrainerMessage(cached);
+        } else {
+            const getMessage = async () => {
+                setIsGeneratingMessage(true);
+                try {
+                    const msg = await generateDailyTrainerMessage(profile);
+                    if (msg) {
+                        setTrainerMessage(msg);
+                        localStorage.setItem(cacheKey, msg);
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    setIsGeneratingMessage(false);
+                }
+            };
+            getMessage();
+        }
+    }, [user, profile, trainerMessage]);
 
     const handleDeleteMeal = async (meal) => {
         if (!window.confirm(`'${meal.description || 'Meal'}'을(를) 삭제할까요?`)) return;
@@ -273,6 +307,35 @@ export default function Dashboard() {
                     <ChevronRight size={20} />
                 </button>
             </div>
+
+            {/* AI Trainer Card */}
+            {isToday(selectedDate) && (isGeneratingMessage || trainerMessage) && (
+                <div style={{
+                    margin: '0 20px 16px',
+                    padding: '16px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 69, 58, 0.05))',
+                    border: '1px solid rgba(255, 149, 0, 0.2)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px'
+                }}>
+                    <div style={{
+                        width: '32px', height: '32px', borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #FF9500, #FF453A)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        color: 'white'
+                    }}>
+                        <Sparkles size={16} />
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#FF453A', marginBottom: '4px' }}>AI Daily Trainer</div>
+                        <div style={{ fontSize: '15px', color: 'var(--text)', lineHeight: 1.5 }}>
+                            {isGeneratingMessage ? <span style={{ color: 'var(--text2)', fontStyle: 'italic' }}>Creating your daily review...</span> : trainerMessage}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Activity Summary */}
             <div className="summary-card" onClick={() => { setShowStats(true); fetchWeeklyData(); }}>
