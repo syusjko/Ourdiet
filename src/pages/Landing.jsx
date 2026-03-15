@@ -1,104 +1,364 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowRight, Sparkles, TrendingDown, Zap, Users, Camera, ChevronDown } from 'lucide-react';
+
+const STEPS = ['info', 'goal', 'result'];
+
+function CalorieCalculator({ onGoSignup }) {
+    const [step, setStep] = useState(0);
+    const [gender, setGender] = useState('male');
+    const [age, setAge] = useState('');
+    const [height, setHeight] = useState('');
+    const [weight, setWeight] = useState('');
+    const [targetWeight, setTargetWeight] = useState('');
+    const [weeks, setWeeks] = useState('8');
+    const [result, setResult] = useState(null);
+    const [animateResult, setAnimateResult] = useState(false);
+    const resultRef = useRef(null);
+
+    const canGoNext = () => {
+        if (step === 0) return age && height && weight;
+        if (step === 1) return targetWeight && weeks && parseFloat(targetWeight) < parseFloat(weight);
+        return true;
+    };
+
+    const calculateBMR = () => {
+        const w = parseFloat(weight);
+        const h = parseFloat(height);
+        const a = parseInt(age);
+        if (gender === 'male') return Math.round(10 * w + 6.25 * h - 5 * a + 5);
+        return Math.round(10 * w + 6.25 * h - 5 * a - 161);
+    };
+
+    const handleNext = () => {
+        if (step === 0) {
+            setStep(1);
+        } else if (step === 1) {
+            // Calculate
+            const bmr = calculateBMR();
+            const tdee = Math.round(bmr * 1.4); // light activity multiplier
+            const totalKgToLose = parseFloat(weight) - parseFloat(targetWeight);
+            const totalCalToLose = totalKgToLose * 7700; // 1kg fat ≈ 7700 kcal
+            const totalDays = parseInt(weeks) * 7;
+            const dailyDeficit = Math.round(totalCalToLose / totalDays);
+            const dailyTarget = Math.max(tdee - dailyDeficit, 1200);
+            setResult({
+                bmr,
+                tdee,
+                totalKgToLose: totalKgToLose.toFixed(1),
+                dailyDeficit,
+                dailyTarget,
+                weeks: parseInt(weeks),
+                isSafe: dailyDeficit <= 1000,
+            });
+            setStep(2);
+            setTimeout(() => setAnimateResult(true), 100);
+        }
+    };
+
+    const handleBack = () => {
+        if (step > 0) {
+            setStep(step - 1);
+            setAnimateResult(false);
+        }
+    };
+
+    return (
+        <div className="lp-calc" id="calculator">
+            <div className="lp-calc-header">
+                <div className="lp-calc-step-dots">
+                    {STEPS.map((s, i) => (
+                        <div key={s} className={`lp-calc-dot ${i <= step ? 'active' : ''}`} />
+                    ))}
+                </div>
+                <div className="lp-calc-step-label">
+                    {step === 0 && 'About You'}
+                    {step === 1 && 'Your Goal'}
+                    {step === 2 && 'Your Plan'}
+                </div>
+            </div>
+
+            <div className="lp-calc-body">
+                {/* Step 1: Basic Info */}
+                {step === 0 && (
+                    <div className="lp-calc-form lp-fade-in">
+                        <h3 className="lp-calc-title">Let's start with the basics</h3>
+                        <p className="lp-calc-sub">Enter your body metrics to calculate your daily calorie needs.</p>
+
+                        <div className="lp-calc-gender">
+                            <button className={`lp-gender-btn ${gender === 'male' ? 'active' : ''}`} onClick={() => setGender('male')}>
+                                <span>🙋‍♂️</span> Male
+                            </button>
+                            <button className={`lp-gender-btn ${gender === 'female' ? 'active' : ''}`} onClick={() => setGender('female')}>
+                                <span>🙋‍♀️</span> Female
+                            </button>
+                        </div>
+
+                        <div className="lp-calc-fields">
+                            <div className="lp-field">
+                                <label>Age</label>
+                                <div className="lp-field-input">
+                                    <input type="number" placeholder="25" value={age} onChange={e => setAge(e.target.value)} />
+                                    <span className="lp-field-unit">years</span>
+                                </div>
+                            </div>
+                            <div className="lp-field">
+                                <label>Height</label>
+                                <div className="lp-field-input">
+                                    <input type="number" placeholder="170" value={height} onChange={e => setHeight(e.target.value)} />
+                                    <span className="lp-field-unit">cm</span>
+                                </div>
+                            </div>
+                            <div className="lp-field">
+                                <label>Weight</label>
+                                <div className="lp-field-input">
+                                    <input type="number" placeholder="75" value={weight} onChange={e => setWeight(e.target.value)} />
+                                    <span className="lp-field-unit">kg</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Goal */}
+                {step === 1 && (
+                    <div className="lp-calc-form lp-fade-in">
+                        <h3 className="lp-calc-title">Set your target</h3>
+                        <p className="lp-calc-sub">How much weight do you want to lose, and how quickly?</p>
+
+                        <div className="lp-calc-fields">
+                            <div className="lp-field">
+                                <label>Current Weight</label>
+                                <div className="lp-field-input">
+                                    <input type="number" value={weight} disabled style={{ opacity: 0.5 }} />
+                                    <span className="lp-field-unit">kg</span>
+                                </div>
+                            </div>
+                            <div className="lp-field">
+                                <label>Target Weight</label>
+                                <div className="lp-field-input">
+                                    <input type="number" placeholder="68" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} />
+                                    <span className="lp-field-unit">kg</span>
+                                </div>
+                            </div>
+                            <div className="lp-field">
+                                <label>Timeline</label>
+                                <div className="lp-field-input">
+                                    <select value={weeks} onChange={e => setWeeks(e.target.value)} className="lp-select">
+                                        <option value="4">4 weeks</option>
+                                        <option value="8">8 weeks</option>
+                                        <option value="12">12 weeks</option>
+                                        <option value="16">16 weeks</option>
+                                        <option value="24">24 weeks</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {targetWeight && parseFloat(targetWeight) >= parseFloat(weight) && (
+                            <div className="lp-calc-warn">Target weight should be lower than your current weight.</div>
+                        )}
+                    </div>
+                )}
+
+                {/* Step 3: Result */}
+                {step === 2 && result && (
+                    <div className={`lp-calc-result lp-fade-in ${animateResult ? 'show' : ''}`} ref={resultRef}>
+                        <div className="lp-result-hero">
+                            <div className="lp-result-number">{result.dailyTarget}</div>
+                            <div className="lp-result-unit">kcal / day</div>
+                            <div className="lp-result-label">Your daily calorie budget</div>
+                        </div>
+
+                        <div className="lp-result-grid">
+                            <div className="lp-result-card">
+                                <div className="lp-result-card-value">{result.bmr}</div>
+                                <div className="lp-result-card-label">Base Metabolism<br />(BMR)</div>
+                            </div>
+                            <div className="lp-result-card">
+                                <div className="lp-result-card-value">{result.tdee}</div>
+                                <div className="lp-result-card-label">Maintenance<br />(TDEE)</div>
+                            </div>
+                            <div className="lp-result-card accent">
+                                <div className="lp-result-card-value">-{result.dailyDeficit}</div>
+                                <div className="lp-result-card-label">Daily Deficit<br />Needed</div>
+                            </div>
+                        </div>
+
+                        <div className="lp-result-summary">
+                            <p>To reach <strong>{targetWeight}kg</strong> in <strong>{result.weeks} weeks</strong>, you need to create 
+                            a <strong>{result.dailyDeficit} kcal</strong> daily deficit.</p>
+                            {!result.isSafe && (
+                                <div className="lp-result-warn">
+                                    ⚠️ This pace is quite aggressive. Consider extending your timeline for healthier weight loss (recommended: max 500-750 kcal deficit/day).
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="lp-result-cta">
+                            <p className="lp-result-cta-text">Track meals, exercise, and hit your daily target with OurDiet.</p>
+                            <Link to="/signup" className="lp-btn-signup" onClick={onGoSignup}>
+                                Start tracking for free <ArrowRight size={16} />
+                            </Link>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Actions */}
+            <div className="lp-calc-actions">
+                {step > 0 && step < 2 && (
+                    <button className="lp-calc-back" onClick={handleBack}>← Back</button>
+                )}
+                {step < 2 && (
+                    <button className="lp-calc-next" onClick={handleNext} disabled={!canGoNext()}>
+                        {step === 1 ? 'Calculate' : 'Next'} <ArrowRight size={16} />
+                    </button>
+                )}
+                {step === 2 && (
+                    <button className="lp-calc-back" onClick={() => { setStep(0); setAnimateResult(false); }}>
+                        ↻ Start over
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export default function Landing() {
+    const navigate = useNavigate();
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToCalc = () => {
+        document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     return (
-        <div className="landing-page">
-            <nav className="landing-nav">
-                <div className="landing-nav-inner">
-                    <div className="landing-logo">OurDiet</div>
-                    <div className="landing-nav-btns">
-                        <Link to="/login" className="landing-nav-link">Log In</Link>
-                        <Link to="/signup" className="landing-btn-primary">Sign Up</Link>
+        <div className="lp">
+            {/* Nav */}
+            <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
+                <div className="lp-nav-inner">
+                    <div className="lp-logo">OurDiet</div>
+                    <div className="lp-nav-right">
+                        <Link to="/login" className="lp-nav-link">Log In</Link>
+                        <Link to="/signup" className="lp-btn-nav">Get Started</Link>
                     </div>
                 </div>
             </nav>
 
             {/* Hero */}
-            <section className="landing-hero">
-                <div className="landing-hero-content">
-                    <h1 className="landing-hero-title">
-                        Eat less.<br />
-                        <span className="landing-hero-title-sub">Lose weight.</span>
-                    </h1>
-                    <p className="landing-hero-desc">
-                        The principle is simple—it's the exact same science behind Wegovy. Create a calorie deficit. Track what you eat, share your progress, and stay accountable together.
-                    </p>
-                    <div className="landing-hero-actions">
-                        <Link to="/signup" className="landing-btn-hero">Get Started — it's free</Link>
+            <section className="lp-hero">
+                <div className="lp-hero-glow" />
+                <div className="lp-hero-content">
+                    <div className="lp-hero-badge">
+                        <Sparkles size={13} /> Science-based weight management
                     </div>
+                    <h1 className="lp-hero-title">
+                        The simplest way to<br />
+                        <span className="lp-gradient-text">lose weight.</span>
+                    </h1>
+                    <p className="lp-hero-desc">
+                        No magic pills. Just the same calorie deficit science behind 
+                        Wegovy &amp; Ozempic — powered by AI tracking, group accountability, and you.
+                    </p>
+                    <div className="lp-hero-btns">
+                        <button className="lp-btn-hero" onClick={scrollToCalc}>
+                            Try the Calculator <ArrowRight size={16} />
+                        </button>
+                        <Link to="/signup" className="lp-btn-hero-alt">
+                            Sign Up Free
+                        </Link>
+                    </div>
+                </div>
+                <div className="lp-scroll-hint" onClick={scrollToCalc}>
+                    <ChevronDown size={20} />
                 </div>
             </section>
 
-            {/* Divider */}
-            <div className="landing-divider" />
+            {/* Interactive Calculator Section */}
+            <section className="lp-section lp-section-calc">
+                <div className="lp-section-inner">
+                    <div className="lp-overline">Try It Now</div>
+                    <h2 className="lp-section-title">How many calories should <em>you</em> eat?</h2>
+                    <p className="lp-section-sub">
+                        Enter your info and see exactly how many calories you need per day to reach your goal weight — no signup required.
+                    </p>
+                    <CalorieCalculator onGoSignup={() => {}} />
+                </div>
+            </section>
 
             {/* How it works */}
-            <section className="landing-section">
-                <div className="landing-section-inner">
-                    <p className="landing-overline">How it works</p>
-                    <h2 className="landing-section-title">Three steps to better eating habits</h2>
-
-                    <div className="landing-steps">
-                        <div className="landing-step-card">
-                            <div className="landing-step-num">1</div>
-                            <h3 className="landing-step-title">Log your meal</h3>
-                            <p className="landing-step-desc">Take a photo or type what you ate. Our AI identifies the food and estimates calories, protein, carbs, and fat.</p>
+            <section className="lp-section">
+                <div className="lp-section-inner">
+                    <div className="lp-overline">How It Works</div>
+                    <h2 className="lp-section-title">Three steps to your goal</h2>
+                    <div className="lp-steps">
+                        <div className="lp-step-card">
+                            <div className="lp-step-icon"><Camera size={24} /></div>
+                            <div className="lp-step-num">01</div>
+                            <h3 className="lp-step-title">Log your meals</h3>
+                            <p className="lp-step-desc">Snap a photo or type what you ate. AI identifies the food and calculates calories instantly.</p>
                         </div>
-                        <div className="landing-step-card">
-                            <div className="landing-step-num">2</div>
-                            <h3 className="landing-step-title">Track your progress</h3>
-                            <p className="landing-step-desc">See your daily calorie intake, weight trend, and workout activity in one clean dashboard.</p>
+                        <div className="lp-step-card">
+                            <div className="lp-step-icon"><TrendingDown size={24} /></div>
+                            <div className="lp-step-num">02</div>
+                            <h3 className="lp-step-title">Track your deficit</h3>
+                            <p className="lp-step-desc">See your daily balance of calories in vs. out. BMR, exercise, steps — all calculated automatically.</p>
                         </div>
-                        <div className="landing-step-card">
-                            <div className="landing-step-num">3</div>
-                            <h3 className="landing-step-title">Stay accountable</h3>
-                            <p className="landing-step-desc">Join or create groups with friends. See each other's daily stats and keep each other motivated through chat.</p>
+                        <div className="lp-step-card">
+                            <div className="lp-step-icon"><Users size={24} /></div>
+                            <div className="lp-step-num">03</div>
+                            <h3 className="lp-step-title">Stay accountable</h3>
+                            <p className="lp-step-desc">Join diet groups, compare progress, and motivate each other through daily check-ins.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             {/* Features */}
-            <section className="landing-section landing-section-alt">
-                <div className="landing-section-inner">
-                    <p className="landing-overline">Features</p>
-                    <h2 className="landing-section-title">Everything you need, nothing you don't</h2>
-
-                    <div className="landing-features">
-                        <div className="landing-feature-card">
-                            <h3 className="landing-feature-title">AI Food Analysis</h3>
-                            <p className="landing-feature-desc">Snap a photo and let Gemini AI break down the nutrition. 3 free tokens per day.</p>
-                        </div>
-                        <div className="landing-feature-card">
-                            <h3 className="landing-feature-title">Weight Tracking</h3>
-                            <p className="landing-feature-desc">Log your weight daily and visualise changes over time with a simple chart.</p>
-                        </div>
-                        <div className="landing-feature-card">
-                            <h3 className="landing-feature-title">Workout Log</h3>
-                            <p className="landing-feature-desc">Record steps and exercise calories. See your total burn alongside what you eat.</p>
-                        </div>
-                        <div className="landing-feature-card">
-                            <h3 className="landing-feature-title">Group Diet</h3>
-                            <p className="landing-feature-desc">Create private or public groups. Share progress, compare stats, and chat in-app.</p>
-                        </div>
+            <section className="lp-section lp-section-dark">
+                <div className="lp-section-inner">
+                    <div className="lp-overline" style={{ color: '#FF9500' }}>Features</div>
+                    <h2 className="lp-section-title" style={{ color: '#fff' }}>Everything you need</h2>
+                    <div className="lp-features">
+                        {[
+                            { icon: <Sparkles size={20} />, title: 'AI Food Analysis', desc: 'Photo or text — our AI breaks down calories, protein, carbs, and fat in seconds.' },
+                            { icon: <TrendingDown size={20} />, title: 'Weight Tracking', desc: 'Log daily weigh-ins and visualize your progress with beautiful trend charts.' },
+                            { icon: <Zap size={20} />, title: 'Workout & Steps', desc: 'Track exercise calories and steps. See your total daily burn at a glance.' },
+                            { icon: <Users size={20} />, title: 'Group Diet', desc: 'Create or join groups. Share stats, compare progress, and chat — all in-app.' },
+                        ].map((f, i) => (
+                            <div key={i} className="lp-feature-card">
+                                <div className="lp-feature-icon">{f.icon}</div>
+                                <h3 className="lp-feature-title">{f.title}</h3>
+                                <p className="lp-feature-desc">{f.desc}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* CTA */}
-            <section className="landing-cta">
-                <div className="landing-cta-inner">
-                    <h2 className="landing-cta-title">Ready to start?</h2>
-                    <p className="landing-cta-desc">Free to use. No credit card required.</p>
-                    <Link to="/signup" className="landing-btn-hero landing-btn-white">Create your account</Link>
+            {/* Final CTA */}
+            <section className="lp-cta">
+                <div className="lp-cta-inner">
+                    <h2 className="lp-cta-title">Ready to start your journey?</h2>
+                    <p className="lp-cta-desc">Free forever. No credit card required. Just science.</p>
+                    <Link to="/signup" className="lp-btn-hero lp-btn-cta">
+                        Create Your Free Account <ArrowRight size={16} />
+                    </Link>
                 </div>
             </section>
 
             {/* Footer */}
-            <footer className="landing-footer">
-                <div className="landing-footer-inner">
-                    <div className="landing-logo" style={{ fontSize: 18 }}>OurDiet</div>
-                    <div className="landing-footer-copy">© 2026 OurDiet</div>
+            <footer className="lp-footer">
+                <div className="lp-footer-inner">
+                    <div className="lp-logo" style={{ fontSize: 16 }}>OurDiet</div>
+                    <div className="lp-footer-copy">© 2026 OurDiet. Built with science & accountability.</div>
                 </div>
             </footer>
         </div>
