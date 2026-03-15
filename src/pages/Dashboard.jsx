@@ -163,7 +163,24 @@ export default function Dashboard() {
             const getMessage = async () => {
                 setIsGeneratingMessage(true);
                 try {
-                    const msg = await generateDailyTrainerMessage(profile);
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yStr = yesterday.toISOString().split('T')[0];
+                    
+                    const { data: yMeals } = await supabase.from('meals').select('description, calories')
+                        .eq('user_id', user.id).gte('created_at', `${yStr}T00:00:00`).lte('created_at', `${yStr}T23:59:59`);
+                    
+                    const { data: yWorkout } = await supabase.from('workout_logs')
+                        .select('steps, exercise_calories').eq('user_id', user.id).eq('log_date', yStr).maybeSingle();
+
+                    const yesterdayData = {
+                        meals: yMeals || [],
+                        caloriesConsumed: (yMeals || []).reduce((a,c) => a+c.calories, 0),
+                        steps: yWorkout?.steps || 0,
+                        exerciseCalories: yWorkout?.exercise_calories || 0,
+                    };
+
+                    const msg = await generateDailyTrainerMessage(profile, yesterdayData);
                     if (msg) {
                         setTrainerMessage(msg);
                         localStorage.setItem(cacheKey, msg);

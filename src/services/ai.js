@@ -196,7 +196,7 @@ Return ONLY a JSON object exactly like this:
     }
 }
 
-export async function generateDailyTrainerMessage(profile) {
+export async function generateDailyTrainerMessage(profile, yesterdayData) {
     try {
         const ai = getGenAI();
         if (!ai) return null;
@@ -205,22 +205,31 @@ export async function generateDailyTrainerMessage(profile) {
         const isDieting = profile?.target_weight && profile?.weight && (profile.weight > profile.target_weight);
         const weightDiff = isDieting ? profile.weight - profile.target_weight : 0;
         
-        const prompt = `You are a friendly, enthusiastic, and professional daily health trainer (PT).
-It is morning time. Check the user's basic profile and give them a short, punchy, 2-to-3 sentence motivational message to start their day.
-The user is aiming to manage their weight.
+        const foodNames = yesterdayData?.meals?.map(m => m.description).join(', ') || 'None';
+        const hasLogs = yesterdayData?.caloriesConsumed > 0;
+
+        const prompt = `You are a professional, analytical, yet encouraging daily health trainer (PT).
+It is morning time. Review the user's profile and their behavior from yesterday, then provide a short, practical 2-to-3 sentence review and advice for today.
 
 User Profile:
 - Current Weight: ${profile?.weight || 'Unknown'} kg
 ${isDieting ? `- Target Weight: ${profile.target_weight} kg (Needs to lose ${weightDiff.toFixed(1)}kg)` : '- Goal: maintain or generally stay healthy'}
 - Gender: ${profile?.gender || 'Unknown'}
 
+Yesterday's Data:
+- Calories Consumed: ${yesterdayData?.caloriesConsumed || 0} kcal
+- Foods Logged: ${foodNames}
+- Steps Taken: ${yesterdayData?.steps || 0}
+- Active Calories Burned: ${yesterdayData?.exerciseCalories || 0} kcal
+
 Guidelines:
 1. Speak in natural, friendly English.
 2. Keep it to a maximum of 3 short sentences.
-3. Don't be robotic. Do not include quotes, intro greetings like 'Hi!', just give the message directly.
-4. Encourage them to hit their daily deficit target, log their meals today, or drink water.
+3. Don't be generic. Reference what they did yesterday! For example, if they ate something specific, mention it. If they didn't log anything, remind them to log their meals. If they walked a lot, praise their steps. If they went over their calories, suggest a lighter meal today. 
+4. DO NOT say "Good morning!" or "Hi!". Start the review directly.
+5. Provide actionable advice for today based on yesterday's results.
 
-Make it feel like a minimalist push notification from a caring trainer.
+Make it feel like a minimalist push notification from a caring, observant trainer.
 
 Return ONLY the plain text English message. No JSON, no formatting block.`;
 
