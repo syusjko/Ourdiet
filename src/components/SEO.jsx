@@ -3,8 +3,8 @@ import { Helmet } from 'react-helmet-async';
 
 export default function SEO({ title, description, url, image }) {
     const siteTitle = 'OurDiet';
-    const finalTitle = title ? `${title} | ${siteTitle}` : siteTitle;
-    const desc = description || 'The same calorie deficit science behind Wegovy & Ozempic. AI-powered meal tracking and group accountability to help you stay on track. AI 칼로리 계산, 다이어트 앱, 식단 관리.';
+    const finalTitle = title ? `${title} | ${siteTitle}` : `AI Calorie Counter & Meal Tracker | ${siteTitle}`;
+    const desc = description || 'Track calories instantly with AI. OurDiet uses the same calorie deficit science as Wegovy & Ozempic to help you lose weight without magic pills. Start your AI-powered meal tracking journey today.';
     const finalUrl = url ? `https://www.advisorapi.io${url}` : 'https://www.advisorapi.io/';
     const finalImage = image || 'https://www.advisorapi.io/og-image.png';
     
@@ -19,7 +19,8 @@ export default function SEO({ title, description, url, image }) {
             "price": "0",
             "priceCurrency": "USD"
         },
-        "description": desc,
+        "description": "AI-powered calorie counter and meal tracking application designed for calorie deficit management.",
+        "featureList": "AI Food Recognition, Weight Tracking, Group Accountability, Calorie Deficit Calculator",
         "aggregateRating": {
             "@type": "AggregateRating",
             "ratingValue": "4.8",
@@ -32,7 +33,7 @@ export default function SEO({ title, description, url, image }) {
             {/* Standard metadata tags */}
             <title>{finalTitle}</title>
             <meta name="description" content={desc} />
-            <meta name="keywords" content="AI 칼로리 계산, 다이어트 앱, 식단 관리, OurDiet, Calorie Tracker, Diet App" />
+            <meta name="keywords" content="AI Calorie Counter, AI Meal Tracker, Calorie Deficit App, AI Nutrition Analysis, Weight Loss App" />
             
             {/* Open Graph tags */}
             <meta property="og:title" content={finalTitle} />

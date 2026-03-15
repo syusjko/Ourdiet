@@ -209,8 +209,8 @@ export default function Landing() {
     return (
         <div className="lp">
             <SEO 
-                title="Eat less. Lose weight." 
-                description="The same calorie deficit science behind Wegovy & Ozempic — no magic pills. AI-powered meal tracking and group accountability to help you stay on track."
+                title="AI Calorie Counter & Meal Tracker" 
+                description="Track calories instantly with AI. OurDiet uses the same calorie deficit science as Wegovy & Ozempic to help you lose weight without magic pills."
                 url="/"
             />
             {/* Nav */}
@@ -235,7 +235,10 @@ export default function Landing() {
                             Eat less.<br />
                             <span className="lp-gradient-text">Lose weight.</span>
                         </h1>
-                        <p className="lp-hero-desc">
+                        <h2 className="lp-hero-subtitle" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>
+                            The Smartest AI Calorie Counter for Sustainable Weight Loss
+                        </h2>
+                        <p className="lp-hero-desc" style={{ marginTop: 0 }}>
                             The same calorie deficit science behind Wegovy &amp; Ozempic — no magic pills.
                             AI-powered meal tracking and group accountability to help you stay on track.
                         </p>
