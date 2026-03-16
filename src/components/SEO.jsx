@@ -8,25 +8,33 @@ export default function SEO({ title, description, url, image }) {
     const finalUrl = url ? `https://www.advisorapi.io${url}` : 'https://www.advisorapi.io/';
     const finalImage = image || 'https://www.advisorapi.io/og-image.png';
     
-    const jsonLd = {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "OurDiet",
-        "operatingSystem": "Web",
-        "applicationCategory": "HealthApplication",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
+    const jsonLd = [
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "OurDiet",
+            "url": "https://www.advisorapi.io/"
         },
-        "description": "AI-powered calorie counter and meal tracking application designed for calorie deficit management.",
-        "featureList": "AI Food Recognition, Weight Tracking, Group Accountability, Calorie Deficit Calculator",
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "ratingCount": "120"
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "OurDiet",
+            "operatingSystem": "Web",
+            "applicationCategory": "HealthApplication",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "AI-powered calorie counter and meal tracking application designed for calorie deficit management.",
+            "featureList": "AI Food Recognition, Weight Tracking, Group Accountability, Calorie Deficit Calculator",
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.8",
+                "ratingCount": "120"
+            }
         }
-    };
+    ];
 
     return (
         <Helmet>
