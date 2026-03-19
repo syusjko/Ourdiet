@@ -112,9 +112,12 @@ export default function Dashboard() {
     const bmrBurned = Math.round(bmrFull * getTimeFraction());
 
     // Steps → Calories: ~0.04 kcal per step for 80kg person, scales with body weight
-    // Formula: steps × weight(kg) × 0.0005
+    // Formula incorporating height: stride length = height(cm) * 0.00414 (m). Distance = steps * stride.
+    const height = profile?.height || 170;
     const weight = profile?.weight || 70;
-    const stepCalories = Math.round(steps * weight * 0.0005);
+    const strideMeters = height * 0.00414;
+    const distanceKm = (steps * strideMeters) / 1000;
+    const stepCalories = Math.round(distanceKm * weight * 1.036);
 
     const totalBurned = bmrBurned + stepCalories + activeCalories;
     const netCalories = caloriesConsumed - totalBurned;

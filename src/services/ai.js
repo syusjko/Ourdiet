@@ -9,13 +9,14 @@ const getGenAI = () => {
     return genAI;
 };
 
-export async function analyzeFoodImage(base64Image) {
+export async function analyzeFoodImage(base64Image, extraDescription = '') {
     try {
         const ai = getGenAI();
         if (!ai) throw new Error('API key missing');
         const model = ai.getGenerativeModel({ model: 'gemini-flash-latest' });
 
-        const prompt = `You are a professional nutritionist analyzing food images. Follow this systematic approach:
+        const extraText = extraDescription ? `\nUser provided extra context: "${extraDescription}". Please consider this to adjust your estimation accurately.` : '';
+        const prompt = `You are a professional nutritionist analyzing food images. Follow this systematic approach:${extraText}
 
 STEP 1: IDENTIFY THE FOOD
 - What is the main dish?

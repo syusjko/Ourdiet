@@ -39,8 +39,11 @@ export default function Workout() {
     };
     const bmrBurned = Math.round(bmrFull * getTimeFraction());
 
+    const height = profile?.height || 170;
     const weight = profile?.weight || 70;
-    const stepCalories = Math.round(steps * weight * 0.0005);
+    const strideMeters = height * 0.00414;
+    const distanceKm = (steps * strideMeters) / 1000;
+    const stepCalories = Math.round(distanceKm * weight * 1.036);
     const totalBurned = bmrBurned + stepCalories + activeCalories;
 
     useEffect(() => { if (user) fetchProfile(); }, [user]);
@@ -112,7 +115,11 @@ export default function Workout() {
             const s = dayLog.steps || 0;
             const a = dayLog.exercise_calories || 0;
             const dayBmr = i === 0 ? bmrBurned : bmrFull;
-            const dayStepCal = Math.round(s * weight * 0.0005);
+            const h = profile?.height || 170;
+            const w = profile?.weight || 70;
+            const _strideMeters = h * 0.00414;
+            const _distKm = (s * _strideMeters) / 1000;
+            const dayStepCal = Math.round(_distKm * w * 1.036);
             
             data.push({
                 date: dateStr,
@@ -394,22 +401,35 @@ export default function Workout() {
             </div>
 
             {/* Manual Input */}
-            <div className="card" style={{ margin: '0 16px 16px' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Edit size={16} /> Add / Update Activity
+            <div className="card" style={{ margin: '0 16px 16px', background: 'var(--bg-secondary)' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Edit size={16} /> Quick Activity Entry
                 </div>
-                <div className="workout-input-group">
-                    <div className="workout-input-row">
-                        <div className="workout-input-icon"><Footprints size={16} color="#32ADE6" /></div>
-                        <input className="steps-input" type="number" placeholder="Steps" value={stepsInput} onChange={e => setStepsInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && saveSteps()} />
-                        <button className="weight-add-btn" onClick={saveSteps} style={{ padding: '0 16px', fontSize: 13 }}>Save</button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', gap: 12 }}>
+                        <div style={{ background: 'rgba(50, 173, 230, 0.15)', padding: 8, borderRadius: 10 }}>
+                            <Footprints size={20} color="#32ADE6" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 600, marginBottom: 4 }}>TOTAL STEPS</div>
+                            <input type="number" placeholder="e.g. 5000" value={stepsInput} onChange={e => setStepsInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && saveSteps()}
+                                style={{ width: '100%', background: 'transparent', border: 'none', fontSize: 16, fontWeight: 700, color: 'var(--text)', outline: 'none' }} />
+                        </div>
+                        <button onClick={saveSteps} style={{ background: '#32ADE6', border: 'none', padding: '8px 16px', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Save</button>
                     </div>
-                    <div className="workout-input-row">
-                        <div className="workout-input-icon"><Dumbbell size={16} color="#AF52DE" /></div>
-                        <input className="steps-input" type="number" placeholder="Exercise calories (kcal)" value={activeCalInput} onChange={e => setActiveCalInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && saveActiveCal()} />
-                        <button className="weight-add-btn" onClick={saveActiveCal} style={{ padding: '0 16px', fontSize: 13 }}>Save</button>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', gap: 12 }}>
+                        <div style={{ background: 'rgba(175, 82, 222, 0.15)', padding: 8, borderRadius: 10 }}>
+                            <Dumbbell size={20} color="#AF52DE" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 600, marginBottom: 4 }}>EXERCISE BURN (kcal)</div>
+                            <input type="number" placeholder="e.g. 300" value={activeCalInput} onChange={e => setActiveCalInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && saveActiveCal()}
+                                style={{ width: '100%', background: 'transparent', border: 'none', fontSize: 16, fontWeight: 700, color: 'var(--text)', outline: 'none' }} />
+                        </div>
+                        <button onClick={saveActiveCal} style={{ background: '#AF52DE', border: 'none', padding: '8px 16px', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Save</button>
                     </div>
                 </div>
             </div>

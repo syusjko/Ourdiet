@@ -23,6 +23,7 @@ export default function NewPost() {
     const [carbs, setCarbs] = useState('');
     const [fat, setFat] = useState('');
     const [foodComponents, setFoodComponents] = useState([]);
+    const [extraDescription, setExtraDescription] = useState('');
     const [mealType, setMealType] = useState('meal');
     const [mealDate, setMealDate] = useState(new Date().toISOString().split('T')[0]);
     const [mode, setMode] = useState('photo');
@@ -52,7 +53,7 @@ export default function NewPost() {
                 reader.onload = () => resolve(reader.result.split(',')[1]);
                 reader.readAsDataURL(imageFile);
             });
-            const result = await analyzeFoodImage(base64);
+            const result = await analyzeFoodImage(base64, extraDescription);
             setCalories(result.calories.toString());
             setDescription(result.description);
             setProtein(result.protein?.toString() || '0');
@@ -178,11 +179,19 @@ export default function NewPost() {
                             </>
                         )}
                     </label>
-                    <input id="file-input" type="file" accept="image/*" capture="environment" onChange={handleFileSelect} style={{ display: 'none' }} />
+                    <input id="file-input" type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
                     {imagePreview && (
-                        <button className="analyze-btn" onClick={analyzeImage} disabled={analyzing}>
-                            {analyzing ? <div className="spinner" /> : <><Sparkles size={18} /> Analyze with AI</>}
-                        </button>
+                        <div style={{ marginTop: 16 }}>
+                            <div className="input-group">
+                                <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Sparkles size={14} color="#AF52DE" /> AI 추가 분석 설명 (선택)
+                                </label>
+                                <textarea className="input-field" placeholder="예: 소스는 안 먹었어요, 밥은 반 공기만 먹었어요 등" value={extraDescription} onChange={e => setExtraDescription(e.target.value)} style={{ minHeight: 60, fontSize: 13, marginBottom: 12 }} />
+                            </div>
+                            <button className="analyze-btn" onClick={analyzeImage} disabled={analyzing}>
+                                {analyzing ? <div className="spinner" /> : <><Sparkles size={18} /> Analyze with AI</>}
+                            </button>
+                        </div>
                     )}
                 </>
             )}
