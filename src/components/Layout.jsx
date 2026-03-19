@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useState, useEffect } from 'react';
-import { Home, Scale, Users, User, Plus, Search, Bell, LogOut, Camera, Type, FileDigit, Dumbbell, Zap, Activity, Footprints, Sparkles } from 'lucide-react';
+import { Home, Scale, Users, User, Plus, Search, LogOut, Camera, Type, FileDigit, Dumbbell, Zap, Activity, Footprints, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getTokens } from '../services/token';
 
@@ -228,7 +228,9 @@ export default function Layout() {
                             </div>
                         )}
                     </div>
-                    <button className="desktop-header-btn"><Bell size={18} /></button>
+                    <button className="desktop-header-btn" onClick={() => navigate('/app/profile')} style={{ padding: 0, width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), #AF52DE)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, border: 'none' }}>
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </button>
                     <button className="desktop-header-btn" onClick={signOut}><LogOut size={18} /></button>
                 </div>
             </header>
@@ -287,7 +289,9 @@ export default function Layout() {
                             <Sparkles size={14} style={{ marginRight: 4 }} />
                             {aiTokens === 'PRO' ? 'PRO' : aiTokens}
                         </div>
-                        <button className="header-btn"><Bell size={18} /></button>
+                        <button className="header-btn" onClick={() => navigate('/app/profile')} style={{ padding: 0, width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), #AF52DE)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, border: 'none', marginLeft: 4 }}>
+                            {user?.email?.charAt(0).toUpperCase() || 'U'}
+                        </button>
                     </div>
                 </header>
             )}
