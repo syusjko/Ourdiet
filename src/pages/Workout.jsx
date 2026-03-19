@@ -5,6 +5,11 @@ import { Flame, Footprints, Dumbbell, Activity, Edit, ChevronLeft, ChevronRight,
 import { analyzeExerciseText } from '../services/ai';
 import { getTokens, useTokens } from '../services/token';
 
+const getLocalISODate = (d = new Date()) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
 const calculateBMR = (weight, height, age, gender) => {
     if (!weight || !height || !age) return 0;
     if (gender === 'male') return Math.round(10 * weight + 6.25 * height - 5 * age + 5);
@@ -62,7 +67,7 @@ export default function Workout() {
     };
 
     const loadWorkoutData = async (date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalISODate(date);
         const { data } = await supabase.from('workout_logs')
             .select('steps, exercise_calories')
             .eq('user_id', user.id)
@@ -89,8 +94,8 @@ export default function Workout() {
         const sd = new Date();
         sd.setDate(sd.getDate() - 6);
         
-        const endStr = ed.toISOString().split('T')[0];
-        const startStr = sd.toISOString().split('T')[0];
+        const endStr = getLocalISODate(ed);
+        const startStr = getLocalISODate(sd);
 
         const { data: logs } = await supabase.from('workout_logs')
             .select('*')
@@ -109,7 +114,7 @@ export default function Workout() {
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = getLocalISODate(date);
             
             const dayLog = dataMap[dateStr] || { steps: 0, exercise_calories: 0 };
             const s = dayLog.steps || 0;
@@ -135,7 +140,7 @@ export default function Workout() {
     };
 
     const updateWorkoutLog = async (newSteps, newCals) => {
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = getLocalISODate(selectedDate);
         await supabase.from('workout_logs').upsert({
             user_id: user.id,
             log_date: dateStr,
@@ -477,7 +482,7 @@ export default function Workout() {
                         const bmrH = Math.max((d.bmr / maxBurn) * 100, 2);
                         const stepH = Math.max((d.stepCal / maxBurn) * 100, 0);
                         const exH = Math.max((d.exercise / maxBurn) * 100, 0);
-                        const isSelected = d.date === selectedDate.toISOString().split('T')[0];
+                        const isSelected = d.date === getLocalISODate(selectedDate);
                         return (
                             <div key={i} className={`workout-bar-col ${isSelected ? 'selected' : ''}`}
                                 onClick={() => setSelectedDate(new Date(d.date + 'T12:00:00'))}>

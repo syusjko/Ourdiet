@@ -5,6 +5,11 @@ import { supabase } from '../lib/supabase';
 import { Utensils, ChevronLeft, ChevronRight, Plus, Clock, Trash2, X, Check, Sparkles } from 'lucide-react';
 import { generateDailyTrainerMessage } from '../services/ai';
 
+const getLocalISODate = (d = new Date()) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
 const calculateBMR = (weight, height, age, gender) => {
     if (!weight || !height || !age) return 0;
     if (gender === 'male') return Math.round(10 * weight + 6.25 * height - 5 * age + 5);
@@ -168,7 +173,7 @@ export default function Dashboard() {
                 try {
                     const yesterday = new Date();
                     yesterday.setDate(yesterday.getDate() - 1);
-                    const yStr = yesterday.toISOString().split('T')[0];
+                    const yStr = getLocalISODate(yesterday);
                     
                     const { data: yMeals } = await supabase.from('meals').select('description, calories')
                         .eq('user_id', user.id).gte('created_at', `${yStr}T00:00:00`).lte('created_at', `${yStr}T23:59:59`);
@@ -222,7 +227,7 @@ export default function Dashboard() {
 
     const fetchDayData = async (date) => {
         if (!user) return;
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalISODate(date);
         const { data } = await supabase.from('meals').select('*').eq('user_id', user.id)
             .gte('created_at', `${dateStr}T00:00:00`).lte('created_at', `${dateStr}T23:59:59`)
             .order('created_at', { ascending: true });
@@ -242,7 +247,7 @@ export default function Dashboard() {
     };
 
     const loadWorkoutData = async (date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalISODate(date);
         const { data } = await supabase.from('workout_logs')
             .select('steps, exercise_calories')
             .eq('user_id', user.id)
@@ -263,7 +268,7 @@ export default function Dashboard() {
         const days = [];
         for (let i = 6; i >= 0; i--) {
             const date = new Date(); date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = getLocalISODate(date);
             const { data } = await supabase.from('meals').select('calories').eq('user_id', user.id).gte('created_at', `${dateStr}T00:00:00`).lte('created_at', `${dateStr}T23:59:59`);
             const total = data?.reduce((acc, m) => acc + m.calories, 0) || 0;
             days.push({ date: dateStr, calories: total, day: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()] });

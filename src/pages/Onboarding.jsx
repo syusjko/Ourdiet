@@ -4,6 +4,11 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { ChevronRight, ChevronLeft, User, Activity, Target, Check } from 'lucide-react';
 
+const getLocalISODate = (d = new Date()) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
 const STEPS = ['Welcome', 'Body Profile', 'Goal Setting', 'Complete'];
 
 export default function Onboarding() {
@@ -35,7 +40,7 @@ export default function Onboarding() {
         const targetWeight = currentWeight - selectedLoss;
         const tDate = new Date();
         tDate.setMonth(tDate.getMonth() + selectedMonths);
-        const targetDateStr = tDate.toISOString().split('T')[0];
+        const targetDateStr = getLocalISODate(tDate);
 
         try {
             await supabase.from('profiles').upsert({

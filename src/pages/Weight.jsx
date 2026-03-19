@@ -3,6 +3,11 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { ArrowUp, ArrowDown, Sun, CheckCircle } from 'lucide-react';
 
+const getLocalISODate = (d = new Date()) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
 const calculateBMR = (weight, height, age, gender) => {
     if (!weight || !height || !age) return 0;
     if (gender === 'male') return Math.round(10 * weight + 6.25 * height - 5 * age + 5);
@@ -54,7 +59,7 @@ export default function Weight() {
 
     const checkTodayLog = async () => {
         if (!user) return;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalISODate(new Date());
         const { data } = await supabase.from('weight_logs').select('*').eq('user_id', user.id)
             .gte('logged_at', `${today}T00:00:00`).lte('logged_at', `${today}T23:59:59`)
             .limit(1);
@@ -89,7 +94,7 @@ export default function Weight() {
         const finalTargetWeight = currentWeightVal - selectedLoss;
         const tDate = new Date();
         tDate.setMonth(tDate.getMonth() + selectedMonths);
-        const targetDateStr = tDate.toISOString().split('T')[0];
+        const targetDateStr = getLocalISODate(tDate);
 
         await supabase.from('profiles').update({ target_weight: finalTargetWeight, target_date: targetDateStr }).eq('id', user.id);
         alert('Goal saved!');
@@ -121,7 +126,7 @@ export default function Weight() {
         for (let i = 0; i <= 365; i++) {
             const checkDate = new Date(today);
             checkDate.setDate(checkDate.getDate() - i);
-            const dateStr = checkDate.toISOString().split('T')[0];
+            const dateStr = getLocalISODate(checkDate);
             const hasLog = logs.some(l => l.logged_at?.startsWith(dateStr));
             if (hasLog) {
                 streak++;

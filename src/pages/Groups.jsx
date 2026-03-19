@@ -2,32 +2,30 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, MessageCircle, Send, Lock, Search } from 'lucide-react';
+import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, Send, Lock, Search } from 'lucide-react';
 
-function MiniActivityRings({ size = 50, move = 0, exercise = 0 }) {
+const getLocalISODate = (d = new Date()) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
+const catEmojis = { meal: '🥗', snack: '🍪', etc: '☕' };
+
+function ProgressRing({ size = 50, progress = 0, color = "#FA114F" }) {
     const center = size / 2;
     const strokeWidth = 5;
-    const colors = [
-        { color: '#FA114F', progress: move, radius: (size - strokeWidth) / 2 },
-        { color: '#34C759', progress: exercise, radius: (size - strokeWidth) / 2 - 8 },
-    ];
-
+    const radius = Math.max(0, (size - strokeWidth) / 2);
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - Math.min(progress, 1));
     return (
-        <svg width={size} height={size} className="rings-container" style={{ minWidth: size }}>
-            {colors.map((ring, i) => {
-                const circumference = 2 * Math.PI * ring.radius;
-                const offset = circumference * (1 - Math.min(ring.progress, 1));
-                return (
-                    <g key={i}>
-                        <circle cx={center} cy={center} r={ring.radius} fill="none" stroke={ring.color} strokeWidth={strokeWidth} opacity={0.2} />
-                        <circle cx={center} cy={center} r={ring.radius} fill="none" stroke={ring.color} strokeWidth={strokeWidth}
-                            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                            transform={`rotate(-90 ${center} ${center})`}
-                            style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
-                    </g>
-                );
-            })}
-        </svg>
+        <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth} opacity={0.15} />
+                <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
+                    strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+            </svg>
+        </div>
     );
 }
 
@@ -54,21 +52,18 @@ export default function Groups() {
     const [activeGroup, setActiveGroup] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [activeTab, setActiveTab] = useState('stats'); // 'stats', 'chat'
+    const [activeTab, setActiveTab] = useState('stats');
     const messagesEndRef = useRef(null);
 
     useEffect(() => { 
         if (user) { 
             if (activeGroupId) {
-                const isMember = myGroups.some(g => g.id === activeGroupId);
-                // Even without checking here, RLS will block if they bypass it, but let's assume they are member
-                // since they got here from "My Groups".
                 fetchGroupDetails();
             } else {
                 fetchGroups(); 
             }
         } 
-    }, [user, activeGroupId, myGroups]);
+    }, [user, activeGroupId]);
 
     useEffect(() => {
         if (activeTab === 'chat') {
@@ -85,20 +80,17 @@ export default function Groups() {
         if (!members || members.length === 0) return;
         const userIds = members.map(m => m.user_id);
 
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight').in('id', userIds);
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight, height, target_calories, target_burn').in('id', userIds);
         setGroupMembersProfile(profiles || []);
 
-        const todayDate = new Date().toISOString().split('T')[0];
+        const todayDate = getLocalISODate(new Date());
         
-        // Fetch meals for eaten calories
-        const { data: meals } = await supabase.from('meals').select('*').in('user_id', userIds).gte('created_at', todayDate).order('created_at', { ascending: false });
+        const { data: meals } = await supabase.from('meals').select('*').in('user_id', userIds).gte('created_at', `${todayDate}T00:00:00`).lte('created_at', `${todayDate}T23:59:59`).order('created_at', { ascending: false });
         setGroupActivity(meals || []);
 
-        // Fetch workouts
         const { data: workouts } = await supabase.from('workout_logs').select('*').in('user_id', userIds).eq('log_date', todayDate);
         setGroupMembersWorkout(workouts || []);
 
-        // Fetch messages
         const { data: msgs } = await supabase.from('group_messages').select('*').eq('group_id', activeGroupId).order('created_at', { ascending: true });
         setMessages(msgs || []);
     };
@@ -108,86 +100,33 @@ export default function Groups() {
         const { data: members } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
         const myGroupIds = members?.map(m => m.group_id) || [];
 
-        // 1. 내 그룹 가져오기 (비공개 그룹 포함)
         let myGroupsData = [];
         if (myGroupIds.length > 0) {
-            const { data } = await supabase
-                .from('diet_groups')
-                .select('*, group_members(count)')
-                .in('id', myGroupIds)
-                .order('created_at', { ascending: false });
+            const { data } = await supabase.from('diet_groups').select('*, group_members(count)').in('id', myGroupIds).order('created_at', { ascending: false });
             myGroupsData = data || [];
         }
 
-        // 2. 새로운 그룹 목록 가져오기 (공개된 것만)
-        const { data: allPublicGroups } = await supabase
-            .from('diet_groups')
-            .select('*, group_members(count)')
-            .eq('is_public', true)
-            .order('created_at', { ascending: false });
-
-        if (allPublicGroups) {
-            // 내가 가입하지 않은 공개 그룹만 'Discover' 탭에 표시
-            setGroups(allPublicGroups.filter(g => !myGroupIds.includes(g.id)));
-        }
-        
+        const { data: allPublicGroups } = await supabase.from('diet_groups').select('*, group_members(count)').eq('is_public', true).order('created_at', { ascending: false });
+        if (allPublicGroups) setGroups(allPublicGroups.filter(g => !myGroupIds.includes(g.id)));
         setMyGroups(myGroupsData);
     };
 
     const createGroup = async () => {
         if (!user || !name) return;
-        
         try {
             const { data: created, error } = await supabase.from('diet_groups').insert({
-                name, 
-                description, 
-                category, 
-                password: password || null,
-                target_value: parseFloat(targetValue) || null,
-                leader_id: user.id, 
-                is_public: !password,
+                name, description, category, password: password || null, target_value: parseFloat(targetValue) || null, leader_id: user.id, is_public: !password,
             }).select().single();
-
-            if (error) {
-                console.error("Error creating group:", error);
-                alert("그룹 생성에 실패했습니다: " + error.message);
-                return;
-            }
-
-            if (created) {
-                const { error: memberError } = await supabase.from('group_members').insert({ 
-                    group_id: created.id, 
-                    user_id: user.id 
-                });
-                
-                if (memberError) {
-                    console.error("Error adding to members:", memberError);
-                    alert("멤버 추가에 실패했습니다: " + memberError.message);
-                }
-            }
-
-            setShowCreate(false);
-            setName(''); 
-            setDescription(''); 
-            setCategory('calorie'); 
-            setTargetValue(''); 
-            setPassword('');
+            if (error) { alert("그룹 생성 실패: " + error.message); return; }
+            if (created) await supabase.from('group_members').insert({ group_id: created.id, user_id: user.id });
+            setShowCreate(false); setName(''); setDescription(''); setCategory('calorie'); setTargetValue(''); setPassword('');
             fetchGroups();
-        } catch (err) {
-            console.error("Exception in createGroup:", err);
-            alert("알 수 없는 오류가 발생했습니다.");
-        }
+        } catch (err) { alert("오류 발생"); }
     };
 
     const joinGroup = async (group) => {
         if (!user) return;
-        if (group.password) {
-            const input = prompt('Enter group password:');
-            if (input !== group.password) {
-                alert('비밀번호가 틀렸습니다.');
-                return;
-            }
-        }
+        if (group.password && prompt('Enter group password:') !== group.password) return alert('비밀번호가 틀렸습니다.');
         await supabase.from('group_members').insert({ group_id: group.id, user_id: user.id });
         fetchGroups();
     };
@@ -199,7 +138,7 @@ export default function Groups() {
     };
 
     const deleteGroup = async () => {
-        if (!confirm('이 그룹을 완전히 삭제하시겠습니까? 돌이킬 수 없습니다.')) return;
+        if (!confirm('이 그룹을 완전히 삭제하시겠습니까?')) return;
         await supabase.from('diet_groups').delete().eq('id', activeGroupId);
         navigate('/app/groups');
     };
@@ -215,16 +154,15 @@ export default function Groups() {
         const eaten = groupActivity.filter(m => m.user_id === memberId).reduce((sum, m) => sum + (m.calories || 0), 0);
         const workout = groupMembersWorkout.find(w => w.user_id === memberId);
         const profile = groupMembersProfile.find(p => p.id === memberId);
-        const weight = profile?.weight || 70;
+        
+        const h = profile?.height || 170;
+        const w = profile?.weight || 70;
         const steps = workout ? workout.steps : 0;
         const exerciseCals = workout ? (workout.exercise_calories || 0) : 0;
-        const burned = Math.round(steps * weight * 0.0005) + exerciseCals;
-        return { 
-            eaten, 
-            burned, 
-            targetEaten: profile?.target_calories ? Number(profile.target_calories) : 2000, 
-            targetBurned: profile?.target_burn ? Number(profile.target_burn) : 500 
-        };
+        const distKm = (steps * (h * 0.00414)) / 1000;
+        const burned = Math.round(distKm * w * 1.036) + exerciseCals;
+        
+        return { eaten, burned, targetEaten: profile?.target_calories ? Number(profile.target_calories) : 2000, targetBurned: profile?.target_burn ? Number(profile.target_burn) : 500 };
     };
 
     const categoryContents = {
@@ -237,17 +175,14 @@ export default function Groups() {
 
     if (activeGroupId && activeGroup) {
         const isLeader = activeGroup.leader_id === user?.id;
-
         return (
             <div style={{ paddingBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <button onClick={() => navigate('/app/groups')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><ArrowLeft size={20} /></button>
-                        <div className="page-title" style={{ padding: 0, marginBottom: 0 }}>{activeGroup.name || 'Group Activity'}</div>
+                        <div className="page-title" style={{ padding: 0, marginBottom: 0 }}>{activeGroup.name}</div>
                     </div>
-                    {isLeader && (
-                        <button onClick={deleteGroup} style={{ background: 'none', border: 'none', color: '#FF3B30', cursor: 'pointer', padding: 4 }}><Trash2 size={20} /></button>
-                    )}
+                    {isLeader && <button onClick={deleteGroup} style={{ background: 'none', border: 'none', color: '#FF3B30', cursor: 'pointer', padding: 4 }}><Trash2 size={20} /></button>}
                 </div>
 
                 <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
@@ -261,77 +196,81 @@ export default function Groups() {
 
                 {activeTab === 'stats' && (
                     <div style={{ padding: '0 16px' }}>
-                        {/* Member Stats */}
                         <div className="section-title" style={{ marginTop: 0 }}>Today's Member Stats</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {groupMembersProfile.map(profile => {
                                 const stats = getMemberStats(profile.id);
                                 const memberName = profile.full_name || profile.email?.split('@')[0] || 'User';
                                 const memberIsLeader = profile.id === activeGroup.leader_id;
+                                const memberMeals = groupActivity.filter(m => m.user_id === profile.id);
+                                
                                 return (
-                                    <div key={profile.id} className="group-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                            <MiniActivityRings size={50} move={stats.eaten / stats.targetEaten} exercise={stats.burned / stats.targetBurned} />
-                                            <div>
-                                                <div style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                                                    {memberIsLeader && <Crown size={16} color="#FF9500" />}
-                                                    {memberName}
+                                    <div key={profile.id} className="group-card" style={{ padding: 16, background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), #AF52DE)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 }}>
+                                                    {memberName.charAt(0).toUpperCase()}
                                                 </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
-                                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FA114F' }} />
-                                                        <span>섭취:</span>
-                                                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{stats.eaten}</span>
+                                                <div>
+                                                    <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        {memberIsLeader && <Crown size={14} color="#FF9500" />}
+                                                        {memberName}
                                                     </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
-                                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#34C759' }} />
-                                                        <span>소모:</span>
-                                                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{stats.burned}</span>
+                                                    {(isLeader && profile.id !== user.id) && (
+                                                        <button onClick={() => kickMember(profile.id)} style={{ background: 'none', border: 'none', color: '#FF3B30', fontSize: 12, cursor: 'pointer', padding: 0, marginTop: 2 }}>Kick</button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: 12 }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <ProgressRing size={48} progress={stats.eaten / stats.targetEaten} color="#FA114F" />
+                                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <Flame size={16} color="#FA114F" />
+                                                        </div>
                                                     </div>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{stats.eaten}</div>
+                                                    <div style={{ fontSize: 9, color: 'var(--text2)' }}>섭취 (kcal)</div>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <ProgressRing size={48} progress={stats.burned / stats.targetBurned} color="#34C759" />
+                                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <Activity size={16} color="#34C759" />
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{stats.burned}</div>
+                                                    <div style={{ fontSize: 9, color: 'var(--text2)' }}>소모 (kcal)</div>
                                                 </div>
                                             </div>
                                         </div>
-                                        {(isLeader && profile.id !== user.id) && (
-                                            <button onClick={() => kickMember(profile.id)} style={{ background: 'none', border: 'none', color: '#FF3B30', cursor: 'pointer', padding: 8 }}><UserMinus size={18} /></button>
+
+                                        {memberMeals.length > 0 ? (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
+                                                {memberMeals.map(m => (
+                                                    <div key={m.id} style={{ background: 'var(--bg-subtle)', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                                        {m.image_url && m.image_url !== 'manual' && (
+                                                            <img src={m.image_url} alt="meal" style={{ width: '100%', height: 75, objectFit: 'cover' }} />
+                                                        )}
+                                                        <div style={{ padding: '8px 10px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                <span>{catEmojis[m.meal_type || 'meal']}</span> {m.description || 'Meal'}
+                                                            </div>
+                                                            <div style={{ fontSize: 12, color: '#FA114F', fontWeight: 700, marginTop: 4 }}>{m.calories} kcal</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center', padding: '12px 0', background: 'var(--bg-subtle)', borderRadius: 12 }}>
+                                                아직 식단이 기록되지 않았습니다.
+                                            </div>
                                         )}
                                     </div>
                                 );
                             })}
                         </div>
-
-                        {/* Feed */}
-                        <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Today's Feed</span>
-                            <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--text2)' }}>{groupActivity.length} posts</span>
-                        </div>
-                        {groupActivity.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text2)' }}>No activity today.</div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {groupActivity.map(meal => {
-                                    const profile = groupMembersProfile.find(p => p.id === meal.user_id);
-                                    const name = profile?.full_name || profile?.email?.split('@')[0] || 'User';
-                                    return (
-                                        <div key={meal.id} className="group-card" style={{ padding: 16 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                                <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>{name.charAt(0).toUpperCase()}</div>
-                                                    {name}
-                                                </div>
-                                                <div style={{ fontSize: 12, color: 'var(--text2)' }}>{new Date(meal.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                                            </div>
-                                            {meal.image_url && meal.image_url !== 'manual' && (
-                                                <img src={meal.image_url} alt="meal" style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 'var(--radius-md)', marginBottom: 12 }} />
-                                            )}
-                                            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{meal.description || 'Meal'}</div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', color: 'var(--primary)', fontWeight: 600 }}>
-                                                <Flame size={16} /> {meal.calories} kcal
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
                     </div>
                 )}
 
@@ -339,7 +278,7 @@ export default function Groups() {
                     <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)' }}>
                         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 16 }}>
                             {messages.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text2)' }}>Say hi to the group!</div>
+                                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text2)' }}>Group chat is empty.</div>
                             ) : (
                                 messages.map(msg => {
                                     const profile = groupMembersProfile.find(p => p.id === msg.user_id);
@@ -377,37 +316,20 @@ export default function Groups() {
             <div style={{ padding: '8px 16px' }} className="mobile-only-search">
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <Search size={16} color="var(--text2)" style={{ position: 'absolute', left: 12 }} />
-                    <input 
-                        className="input-field"
-                        style={{ paddingLeft: 36, margin: 0, height: 40, background: 'var(--bg-subtle)' }}
-                        placeholder="Search groups..." 
-                        onChange={(e) => {
+                    <input className="input-field" style={{ paddingLeft: 36, margin: 0, height: 40, background: 'var(--bg-subtle)' }} placeholder="Search groups..." onChange={(e) => {
                             const query = e.target.value.toLowerCase();
-                            if (query) {
-                                setGroups(groups => groups.filter(g => g.name.toLowerCase().includes(query)));
-                            } else {
-                                fetchGroups();
-                            }
-                        }}
-                    />
+                            if (query) setGroups(groups => groups.filter(g => g.name.toLowerCase().includes(query)));
+                            else fetchGroups();
+                    }} />
                 </div>
             </div>
 
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px', marginBottom: 16 }} className="hide-scrollbar">
-                <button 
-                    className={`gender-btn ${filterCategory === 'all' ? 'active' : ''}`} 
-                    onClick={() => setFilterCategory('all')}
-                    style={filterCategory === 'all' ? { background: 'var(--primary)', color: '#fff', padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' } : { padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' }}
-                >
+                <button className={`gender-btn ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')} style={filterCategory === 'all' ? { background: 'var(--primary)', color: '#fff', padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' } : { padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' }}>
                     All
                 </button>
                 {Object.keys(categoryContents).map(key => (
-                    <button 
-                        key={key} 
-                        className={`gender-btn ${filterCategory === key ? 'active' : ''}`} 
-                        onClick={() => setFilterCategory(key)}
-                        style={filterCategory === key ? { background: categoryColors[key], color: '#fff', padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' } : { padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' }}
-                    >
+                    <button key={key} className={`gender-btn ${filterCategory === key ? 'active' : ''}`} onClick={() => setFilterCategory(key)} style={filterCategory === key ? { background: categoryColors[key], color: '#fff', padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' } : { padding: '6px 16px', whiteSpace: 'nowrap', borderRadius: '100px' }}>
                         {categoryContents[key]}
                     </button>
                 ))}
@@ -420,9 +342,7 @@ export default function Groups() {
                         <div key={g.id} className="group-card" onClick={() => navigate(`/app/groups?id=${g.id}`)} style={{ cursor: 'pointer' }}>
                             <div className="group-header">
                                 <div className="group-name">{g.name}</div>
-                                <div className="group-badge" style={{ background: categoryColors[g.category] + '20', color: categoryColors[g.category] }}>
-                                    {categoryContents[g.category]}
-                                </div>
+                                <div className="group-badge" style={{ background: categoryColors[g.category] + '20', color: categoryColors[g.category] }}>{categoryContents[g.category]}</div>
                             </div>
                             {g.description && <div className="group-desc">{g.description}</div>}
                             <div className="group-meta">
@@ -440,13 +360,8 @@ export default function Groups() {
                     {groups.filter(g => filterCategory === 'all' || g.category === filterCategory).map(g => (
                         <div key={g.id} className="group-card">
                             <div className="group-header">
-                                <div className="group-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {g.password && <Lock size={14} color="var(--text2)" />}
-                                    {g.name}
-                                </div>
-                                <div className="group-badge" style={{ background: categoryColors[g.category] + '20', color: categoryColors[g.category] }}>
-                                    {categoryContents[g.category]}
-                                </div>
+                                <div className="group-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{g.password && <Lock size={14} color="var(--text2)" />} {g.name}</div>
+                                <div className="group-badge" style={{ background: categoryColors[g.category] + '20', color: categoryColors[g.category] }}>{categoryContents[g.category]}</div>
                             </div>
                             {g.description && <div className="group-desc">{g.description}</div>}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
@@ -462,49 +377,25 @@ export default function Groups() {
                 <div style={{ textAlign: 'center', padding: 60, color: 'var(--text2)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: 'var(--text3)' }}><Users size={48} /></div>
                     <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>No groups yet</div>
-                    <div style={{ fontSize: 14 }}>Create or join a group to start!</div>
                 </div>
             )}
 
-            {/* Create Group Modal */}
             {showCreate && (
                 <div className="modal-overlay">
                     <div className="modal-backdrop" onClick={() => setShowCreate(false)} />
                     <div className="modal-sheet">
                         <div className="sheet-handle" />
                         <div className="sheet-title">Create Group</div>
-
-                        <div className="input-group">
-                            <label className="input-label">Group Name</label>
-                            <input className="input-field" placeholder="e.g. Summer body 2026" value={name} onChange={e => setName(e.target.value)} />
-                        </div>
-
-                        <div className="input-group">
-                            <label className="input-label">Description</label>
-                            <textarea className="input-field" placeholder="What's this group about?" value={description} onChange={e => setDescription(e.target.value)} />
-                        </div>
-
+                        <div className="input-group"><label className="input-label">Group Name</label><input className="input-field" placeholder="e.g. Summer body 2026" value={name} onChange={e => setName(e.target.value)} /></div>
+                        <div className="input-group"><label className="input-label">Description</label><textarea className="input-field" placeholder="What's this group about?" value={description} onChange={e => setDescription(e.target.value)} /></div>
                         <div className="input-group">
                             <label className="input-label">Category</label>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                {Object.keys(categoryContents).map((key) => (
-                                    <button key={key} className={`gender-btn ${category === key ? 'active' : ''}`}
-                                        style={category === key ? { background: categoryColors[key], color: '#fff' } : {}}
-                                        onClick={() => setCategory(key)}>{categoryContents[key]}</button>
-                                ))}
+                                {Object.keys(categoryContents).map((key) => <button key={key} className={`gender-btn ${category === key ? 'active' : ''}`} style={category === key ? { background: categoryColors[key], color: '#fff' } : {}} onClick={() => setCategory(key)}>{categoryContents[key]}</button>)}
                             </div>
                         </div>
-
-                        <div className="input-group">
-                            <label className="input-label">Target Value (optional)</label>
-                            <input className="input-field" type="number" placeholder="e.g. 2000 calories" value={targetValue} onChange={e => setTargetValue(e.target.value)} />
-                        </div>
-
-                        <div className="input-group">
-                            <label className="input-label">Password (optional, to make private)</label>
-                            <input className="input-field" type="password" placeholder="Leave blank for public group" value={password} onChange={e => setPassword(e.target.value)} />
-                        </div>
-
+                        <div className="input-group"><label className="input-label">Target Value (optional)</label><input className="input-field" type="number" placeholder="e.g. 2000 calories" value={targetValue} onChange={e => setTargetValue(e.target.value)} /></div>
+                        <div className="input-group"><label className="input-label">Password (optional)</label><input className="input-field" type="password" placeholder="Leave blank for public group" value={password} onChange={e => setPassword(e.target.value)} /></div>
                         <button className="btn btn-primary" onClick={createGroup}>Create Group</button>
                         <button className="close-btn" onClick={() => setShowCreate(false)}>Cancel</button>
                     </div>

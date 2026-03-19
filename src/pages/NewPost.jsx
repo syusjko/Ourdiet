@@ -9,6 +9,11 @@ import {
     Dumbbell, Check, Plus, Minus, Clock, Flame, X, ChevronDown, ChevronUp
 } from 'lucide-react';
 
+const getLocalISODate = (d = new Date()) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
 export default function NewPost() {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -25,7 +30,7 @@ export default function NewPost() {
     const [foodComponents, setFoodComponents] = useState([]);
     const [extraDescription, setExtraDescription] = useState('');
     const [mealType, setMealType] = useState('meal');
-    const [mealDate, setMealDate] = useState(new Date().toISOString().split('T')[0]);
+    const [mealDate, setMealDate] = useState(getLocalISODate());
     const [mode, setMode] = useState('photo');
     const [textQuery, setTextQuery] = useState('');
     // Remove exercise states
