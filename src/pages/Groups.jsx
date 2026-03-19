@@ -142,28 +142,28 @@ export default function Groups() {
             const { data: created, error } = await supabase.from('diet_groups').insert({
                 name, description, category, password: password || null, target_value: parseFloat(targetValue) || null, leader_id: user.id, is_public: !password,
             }).select().single();
-            if (error) { alert("그룹 생성 실패: " + error.message); return; }
+            if (error) { alert("Failed to create group: " + error.message); return; }
             if (created) await supabase.from('group_members').insert({ group_id: created.id, user_id: user.id });
             setShowCreate(false); setName(''); setDescription(''); setCategory('calorie'); setTargetValue(''); setPassword('');
             fetchGroups();
-        } catch (err) { alert("오류 발생"); }
+        } catch (err) { alert("An error occurred."); }
     };
 
     const joinGroup = async (group) => {
         if (!user) return;
-        if (group.password && prompt('Enter group password:') !== group.password) return alert('비밀번호가 틀렸습니다.');
+        if (group.password && prompt('Enter group password:') !== group.password) return alert('Incorrect password.');
         await supabase.from('group_members').insert({ group_id: group.id, user_id: user.id });
         fetchGroups();
     };
 
     const kickMember = async (memberId) => {
-        if (!confirm('정말 이 멤버를 퇴출하시겠습니까?')) return;
+        if (!confirm('Are you sure you want to kick this member?')) return;
         await supabase.from('group_members').delete().eq('group_id', activeGroupId).eq('user_id', memberId);
         fetchGroupDetails();
     };
 
     const deleteGroup = async () => {
-        if (!confirm('이 그룹을 완전히 삭제하시겠습니까?')) return;
+        if (!confirm('Are you sure you want to delete this group?')) return;
         await supabase.from('diet_groups').delete().eq('id', activeGroupId);
         navigate('/app/groups');
     };
@@ -286,7 +286,7 @@ export default function Groups() {
                                                         </div>
                                                     </div>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{stats.eaten}</div>
-                                                    <div style={{ fontSize: 9, color: 'var(--text2)' }}>섭취 (kcal)</div>
+                                                    <div style={{ fontSize: 9, color: 'var(--text2)' }}>Eaten (kcal)</div>
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                                     <div style={{ position: 'relative' }}>
@@ -296,17 +296,17 @@ export default function Groups() {
                                                         </div>
                                                     </div>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{stats.burned}</div>
-                                                    <div style={{ fontSize: 9, color: 'var(--text2)' }}>소모 (kcal)</div>
+                                                    <div style={{ fontSize: 9, color: 'var(--text2)' }}>Burned (kcal)</div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {memberMeals.length > 0 ? (
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
                                                 {memberMeals.map(m => (
                                                     <div key={m.id} style={{ background: 'var(--bg-subtle)', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                                         {m.image_url && m.image_url !== 'manual' && (
-                                                            <img src={m.image_url} alt="meal" style={{ width: '100%', height: 75, objectFit: 'cover' }} />
+                                                            <img src={m.image_url} alt="meal" style={{ width: '100%', height: 120, objectFit: 'cover' }} />
                                                         )}
                                                         <div style={{ padding: '8px 10px' }}>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -319,7 +319,7 @@ export default function Groups() {
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center', padding: '12px 0', background: 'var(--bg-subtle)', borderRadius: 12 }}>
-                                                아직 식단이 기록되지 않았습니다.
+                                                No meals logged yet.
                                             </div>
                                         )}
                                     </div>

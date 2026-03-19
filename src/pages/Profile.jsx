@@ -13,6 +13,7 @@ export default function Profile() {
     const [profile, setProfile] = useState(null);
     const [showEditName, setShowEditName] = useState(false);
     const [editName, setEditName] = useState('');
+    const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
     const [isPro, setIsPro] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -28,6 +29,7 @@ export default function Profile() {
         if (data) {
             setProfile(data);
             setEditName(data.full_name || '');
+            setTimezone(data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
             setIsPro(data.is_pro || false);
         }
     };
@@ -36,9 +38,8 @@ export default function Profile() {
         if (!user || !editName.trim()) return;
         setIsLoading(true);
         try {
-            await supabase.from('profiles').update({ full_name: editName, is_pro: isPro }).eq('id', user.id);
+            await supabase.from('profiles').update({ full_name: editName, is_pro: isPro, timezone: timezone }).eq('id', user.id);
             await fetchProfile();
-            // trigger token update in layout
             window.dispatchEvent(new Event('tokens_updated'));
             setShowEditName(false);
         } catch (error) {
@@ -75,7 +76,7 @@ export default function Profile() {
     };
 
     return (
-        <div style={{ paddingBottom: 24, background: 'var(--bg)', minHeight: '100vh' }}>
+        <div style={{ paddingBottom: 100, background: 'var(--bg)', minHeight: '100vh', overflowY: 'auto' }}>
             {/* Header */}
             <div className="header-sticky" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 20px', background: 'var(--bg)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10 }}>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>Settings</div>
@@ -89,6 +90,9 @@ export default function Profile() {
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 22, fontWeight: 700 }}>{profile?.full_name || 'User'}</div>
                     <div style={{ fontSize: 14, color: 'var(--text2)', marginTop: 4 }}>{user?.email}</div>
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
+                    📍 {profile?.timezone || 'Timezone not set'}
                 </div>
                 <button className="btn btn-secondary btn-sm" style={{ marginTop: 8, padding: '6px 16px', borderRadius: 20 }} onClick={() => setShowEditName(true)}>
                     Edit Profile
@@ -186,14 +190,28 @@ export default function Profile() {
 
             {/* Edit Profile Modal */}
             {showEditName && (
-                <div className="modal-overlay modal-center">
+                <div className="modal-overlay modal-center" style={{ zIndex: 100 }}>
                     <div className="modal-backdrop" onClick={() => setShowEditName(false)} />
-                    <div className="modal-sheet" style={{ textAlign: 'center' }}>
+                    <div className="modal-sheet" style={{ textAlign: 'center', maxHeight: '85vh', overflowY: 'auto', paddingBottom: 40 }}>
                         <div className="sheet-title" style={{ marginBottom: 20 }}>Edit Personal Info</div>
                         
                         <div className="input-group" style={{ textAlign: 'left' }}>
                             <label className="input-label">Display Name</label>
                             <input className="input-field" placeholder="Enter your name" value={editName} onChange={e => setEditName(e.target.value)} />
+                        </div>
+
+                        <div className="input-group" style={{ textAlign: 'left' }}>
+                            <label className="input-label">Country / Timezone</label>
+                            <select className="input-field" value={timezone} onChange={e => setTimezone(e.target.value)} style={{ padding: '12px', background: 'var(--bg-subtle)' }}>
+                                <option value="Asia/Seoul">🇰🇷 South Korea (Asia/Seoul)</option>
+                                <option value="America/New_York">🇺🇸 USA - East (America/New_York)</option>
+                                <option value="America/Los_Angeles">🇺🇸 USA - West (America/Los_Angeles)</option>
+                                <option value="Europe/London">🇬🇧 UK (Europe/London)</option>
+                                <option value="Europe/Paris">🇫🇷 France (Europe/Paris)</option>
+                                <option value="Asia/Tokyo">🇯🇵 Japan (Asia/Tokyo)</option>
+                                <option value="Australia/Sydney">🇦🇺 Australia (Australia/Sydney)</option>
+                            </select>
+                            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Selected timezone will be used for AI and daily targets.</div>
                         </div>
 
                         <div className="input-group" style={{ textAlign: 'left', opacity: 0.6 }}>
