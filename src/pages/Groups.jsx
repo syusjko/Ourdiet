@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, Send, Lock, Search } from 'lucide-react';
+import { Users, Target, Flame, Scale, Calendar, Activity, ArrowLeft, Crown, UserMinus, Trash2, Send, Lock, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const getLocalISODate = (d = new Date()) => {
     const offset = d.getTimezoneOffset() * 60000;
@@ -55,6 +55,31 @@ export default function Groups() {
     const [activeTab, setActiveTab] = useState('stats');
     const messagesEndRef = useRef(null);
 
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [calendarDays, setCalendarDays] = useState([]);
+    const scrollRef = useRef(null);
+
+    const isToday = (d) => d.toDateString() === new Date().toDateString();
+    const isSelected = (d) => d.toDateString() === selectedDate.toDateString();
+
+    useEffect(() => {
+        const days = [];
+        const today = new Date();
+        for (let i = 13; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            days.push(d);
+        }
+        setCalendarDays(days);
+    }, []);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            const active = scrollRef.current.querySelector('.day-pill.active');
+            if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+        }
+    }, [calendarDays, selectedDate]);
+
     useEffect(() => { 
         if (user) { 
             if (activeGroupId) {
@@ -63,7 +88,7 @@ export default function Groups() {
                 fetchGroups(); 
             }
         } 
-    }, [user, activeGroupId]);
+    }, [user, activeGroupId, selectedDate]);
 
     useEffect(() => {
         if (activeTab === 'chat') {
@@ -83,7 +108,7 @@ export default function Groups() {
         const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, weight, height, target_calories, target_burn').in('id', userIds);
         setGroupMembersProfile(profiles || []);
 
-        const todayDate = getLocalISODate(new Date());
+        const todayDate = getLocalISODate(selectedDate);
         
         const { data: meals } = await supabase.from('meals').select('*').in('user_id', userIds).gte('created_at', `${todayDate}T00:00:00`).lte('created_at', `${todayDate}T23:59:59`).order('created_at', { ascending: false });
         setGroupActivity(meals || []);
@@ -165,6 +190,19 @@ export default function Groups() {
         return { eaten, burned, targetEaten: profile?.target_calories ? Number(profile.target_calories) : 2000, targetBurned: profile?.target_burn ? Number(profile.target_burn) : 500 };
     };
 
+    const goToPrevDay = () => {
+        const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d);
+    };
+    const goToNextDay = () => {
+        const d = new Date(selectedDate); d.setDate(d.getDate() + 1); if (d <= new Date()) setSelectedDate(d);
+    };
+    const formatDateTitle = (d) => {
+        if (isToday(d)) return 'Today';
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+    };
+
     const categoryContents = {
         calorie: <><Flame size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />Calorie</>,
         weight: <><Scale size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />Weight</>,
@@ -195,8 +233,25 @@ export default function Groups() {
                 </div>
 
                 {activeTab === 'stats' && (
-                    <div style={{ padding: '0 16px' }}>
-                        <div className="section-title" style={{ marginTop: 0 }}>Today's Member Stats</div>
+                    <>
+                        <div className="date-strip" ref={scrollRef}>
+                            {calendarDays.map((d, i) => {
+                                const dayLabel = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+                                return (
+                                    <button key={i} className={`day-pill ${isSelected(d) ? 'active' : ''} ${isToday(d) ? 'today' : ''}`} onClick={() => setSelectedDate(new Date(d))}>
+                                        <span className="day-pill-weekday">{dayLabel}</span>
+                                        <span className="day-pill-date">{d.getDate()}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="date-nav">
+                            <button className="date-nav-btn" onClick={goToPrevDay}><ChevronLeft size={20} /></button>
+                            <div className="date-nav-title">{formatDateTitle(selectedDate)}</div>
+                            <button className="date-nav-btn" onClick={goToNextDay} disabled={isToday(selectedDate)}><ChevronRight size={20} /></button>
+                        </div>
+                        <div style={{ padding: '0 16px' }}>
+                            <div className="section-title" style={{ marginTop: 0 }}>Member Stats</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {groupMembersProfile.map(profile => {
                                 const stats = getMemberStats(profile.id);
@@ -272,6 +327,7 @@ export default function Groups() {
                             })}
                         </div>
                     </div>
+                    </>
                 )}
 
                 {activeTab === 'chat' && (
