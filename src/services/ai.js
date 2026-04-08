@@ -82,7 +82,7 @@ Return ONLY a JSON object:
             if (lowerText.includes('not contain') || lowerText.includes('no food') || lowerText.includes('cannot analyze')) {
                 throw new Error('NOT_FOOD');
             }
-            return { description: 'Unable to analyze', calories: 0, protein: 0, carbs: 0, fat: 0, components: [] };
+            return { description: 'Unable to analyze', reasoning: text, calories: 0, protein: 0, carbs: 0, fat: 0, components: [] };
         }
 
         const description = (parsed.description || '').toLowerCase();
@@ -102,7 +102,7 @@ Return ONLY a JSON object:
     } catch (error) {
         if (error?.message === 'NOT_FOOD') throw error;
         console.error('AI analysis error:', error);
-        return { description: 'Food', calories: 0, protein: 0, carbs: 0, fat: 0 };
+        return { description: 'Food Analysis Failed', reasoning: error.message || 'Unknown error occurred.', calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
 }
 
@@ -140,7 +140,13 @@ Return ONLY a JSON object:
             if (jsonMatch) jsonText = jsonMatch[0];
         }
 
-        const parsed = JSON.parse(jsonText);
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonText);
+        } catch (parseError) {
+            return { description: 'Unable to analyze', reasoning: text, calories: 0, protein: 0, carbs: 0, fat: 0 };
+        }
+        
         return {
             description: parsed.description || foodDescription,
             reasoning: parsed.reasoning || '',
@@ -151,7 +157,7 @@ Return ONLY a JSON object:
         };
     } catch (error) {
         console.error('AI text analysis error:', error);
-        return { description: foodDescription, calories: 0, protein: 0, carbs: 0, fat: 0 };
+        return { description: foodDescription, reasoning: error.message || 'Unknown error occurred.', calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
 }
 
