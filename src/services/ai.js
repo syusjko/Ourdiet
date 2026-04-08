@@ -120,6 +120,7 @@ Estimate the nutritional information for this food.
 Return ONLY a JSON object:
 {
   "description": "Detailed food name",
+  "reasoning": "Step-by-step reasoning for the calorie estimate",
   "calories": number,
   "protein": number,
   "carbs": number,
@@ -142,6 +143,7 @@ Return ONLY a JSON object:
         const parsed = JSON.parse(jsonText);
         return {
             description: parsed.description || foodDescription,
+            reasoning: parsed.reasoning || '',
             calories: Math.round(parsed.calories || 0),
             protein: Math.round(parsed.protein || 0),
             carbs: Math.round(parsed.carbs || 0),

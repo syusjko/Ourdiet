@@ -22,6 +22,7 @@ export default function NewPost() {
     const [analyzing, setAnalyzing] = useState(false);
     const [posting, setPosting] = useState(false);
     const [calories, setCalories] = useState('');
+    const [reasoning, setReasoning] = useState('');
     const [description, setDescription] = useState('');
     const [caption, setCaption] = useState('');
     const [protein, setProtein] = useState('');
@@ -61,6 +62,7 @@ export default function NewPost() {
             const result = await analyzeFoodImage(base64, extraDescription);
             setCalories(result.calories.toString());
             setDescription(result.description);
+            setReasoning(result.reasoning || '');
             setProtein(result.protein?.toString() || '0');
             setCarbs(result.carbs?.toString() || '0');
             setFat(result.fat?.toString() || '0');
@@ -88,6 +90,7 @@ export default function NewPost() {
             const result = await analyzeFoodText(textQuery);
             setCalories(result.calories.toString());
             setDescription(result.description);
+            setReasoning(result.reasoning || '');
             setProtein(result.protein?.toString() || '0');
             setCarbs(result.carbs?.toString() || '0');
             setFat(result.fat?.toString() || '0');
@@ -213,6 +216,24 @@ export default function NewPost() {
                         {analyzing ? <div className="spinner" /> : <><Sparkles size={18} /> Analyze with AI</>}
                     </button>
                 </>
+            )}
+
+            {/* AI Reasoning Display */}
+            {(analyzing || reasoning) && (
+                <div style={{ marginTop: 16, marginBottom: 16, padding: 16, background: '#F2F2F7', borderRadius: 12, border: '1px solid #E5E5EA' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontWeight: 600, color: '#AF52DE' }}>
+                        <Sparkles size={16} /> AI Analysis Reasoning
+                    </div>
+                    {analyzing ? (
+                        <div style={{ fontSize: 13, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Analyzing your food...
+                        </div>
+                    ) : (
+                        <div style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                            {reasoning || 'No additional reasoning provided.'}
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* Common fields for meal modes */}

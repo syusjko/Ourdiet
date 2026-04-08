@@ -49,6 +49,7 @@ export default function Groups() {
     const [groupActivity, setGroupActivity] = useState([]);
     const [groupMembersProfile, setGroupMembersProfile] = useState([]);
     const [groupMembersWorkout, setGroupMembersWorkout] = useState([]);
+    const [groupMembersWeightLogs, setGroupMembersWeightLogs] = useState([]);
     const [activeGroup, setActiveGroup] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
@@ -115,6 +116,9 @@ export default function Groups() {
 
         const { data: workouts } = await supabase.from('workout_logs').select('*').in('user_id', userIds).eq('log_date', todayDate);
         setGroupMembersWorkout(workouts || []);
+
+        const { data: weightLogs } = await supabase.from('weight_logs').select('*').in('user_id', userIds).order('logged_at', { ascending: true });
+        setGroupMembersWeightLogs(weightLogs || []);
 
         const { data: msgs } = await supabase.from('group_messages').select('*').eq('group_id', activeGroupId).order('created_at', { ascending: true });
         setMessages(msgs || []);
@@ -259,6 +263,50 @@ export default function Groups() {
                                 const memberIsLeader = profile.id === activeGroup.leader_id;
                                 const memberMeals = groupActivity.filter(m => m.user_id === profile.id);
                                 
+                                const memberWeightLogs = groupMembersWeightLogs.filter(w => w.user_id === profile.id);
+                                const trendData = memberWeightLogs.slice(-30);
+                                let trendGraph = null;
+                                if (trendData.length > 1) {
+                                    const firstWeight = trendData[0].weight;
+                                    const deltas = trendData.map(d => d.weight - firstWeight);
+                                    let maxDelta = Math.max(...deltas, 1);
+                                    let minDelta = Math.min(...deltas, -1);
+                                    if (maxDelta === minDelta) { maxDelta += 1; minDelta -= 1; }
+                                    const range = maxDelta - minDelta;
+                                    
+                                    const w = 200;
+                                    const h = 40;
+                                    const points = deltas.map((d, i) => {
+                                        const x = (w / (deltas.length - 1)) * i;
+                                        const y = h - ((d - minDelta) / range) * h;
+                                        return `${x},${y}`;
+                                    }).join(' ');
+                                    
+                                    const currentDelta = deltas[deltas.length - 1];
+                                    const isLoss = currentDelta < 0;
+                                    const trendColor = isLoss ? '#34C759' : (currentDelta > 0 ? '#FF3B30' : 'var(--text2)');
+                                    
+                                    trendGraph = (
+                                        <div style={{ marginTop: 16, background: 'var(--bg-subtle)', padding: '12px', borderRadius: 12 }}>
+                                            <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Scale size={14} color="var(--text2)" /> Weight Trend</div>
+                                                <span style={{ color: trendColor, fontWeight: 700, fontSize: 14 }}>
+                                                    {currentDelta > 0 ? '+' : ''}{currentDelta.toFixed(1)} kg
+                                                </span>
+                                            </div>
+                                            <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+                                                <polyline points={points} fill="none" stroke={trendColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                    );
+                                } else if (trendData.length === 1) {
+                                    trendGraph = (
+                                        <div style={{ marginTop: 16, background: 'var(--bg-subtle)', padding: '12px', borderRadius: 12, fontSize: 12, color: 'var(--text2)', textAlign: 'center' }}>
+                                            Not enough data for trend graph
+                                        </div>
+                                    );
+                                }
+                                
                                 return (
                                     <div key={profile.id} className="group-card" style={{ padding: 16, background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -322,6 +370,8 @@ export default function Groups() {
                                                 No meals logged yet.
                                             </div>
                                         )}
+
+                                        {trendGraph}
                                     </div>
                                 );
                             })}
