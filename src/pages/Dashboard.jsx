@@ -88,6 +88,7 @@ export default function Dashboard() {
     const [editMeal, setEditMeal] = useState(null); // edit form state
     const [steps, setSteps] = useState(0);
     const [activeCalories, setActiveCalories] = useState(0);
+    const [weightLogs, setWeightLogs] = useState([]);
 
     const [showStats, setShowStats] = useState(false);
     const [statsTab, setStatsTab] = useState('day');
@@ -143,7 +144,12 @@ export default function Dashboard() {
         setCalendarDays(days);
     }, []);
 
-    useEffect(() => { if (user) fetchProfile(); }, [user]);
+    useEffect(() => {
+        if (user) {
+            fetchProfile();
+            fetchWeightLogs();
+        }
+    }, [user]);
     useEffect(() => {
         if (user) {
             fetchDayData(selectedDate);
@@ -155,6 +161,12 @@ export default function Dashboard() {
         if (!user) return;
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (data) setProfile(data);
+    };
+
+    const fetchWeightLogs = async () => {
+        if (!user) return;
+        const { data } = await supabase.from('weight_logs').select('*').eq('user_id', user.id).order('logged_at', { ascending: true });
+        if (data) setWeightLogs(data);
     };
 
     // Trainer Message Effect
@@ -305,6 +317,43 @@ export default function Dashboard() {
         }
     }, [calendarDays, selectedDate]);
 
+    const chartData = weightLogs.slice(-30);
+    let trendGraph = null;
+    if (chartData.length > 1) {
+        const firstWeight = chartData[0].weight;
+        const deltas = chartData.map(d => d.weight - firstWeight);
+        let maxDelta = Math.max(...deltas, 1);
+        let minDelta = Math.min(...deltas, -1);
+        if (maxDelta === minDelta) { maxDelta += 1; minDelta -= 1; }
+        const range = maxDelta - minDelta;
+        
+        const w = 320;
+        const h = 50;
+        const points = deltas.map((d, i) => {
+            const x = (w / (deltas.length - 1)) * i;
+            const y = h - ((d - minDelta) / range) * h;
+            return `${x},${y}`;
+        }).join(' ');
+        
+        const currentDelta = deltas[deltas.length - 1];
+        const isLoss = currentDelta < 0;
+        const trendColor = isLoss ? '#34C759' : (currentDelta > 0 ? '#FF3B30' : 'var(--text2)');
+        
+        trendGraph = (
+            <div style={{ margin: '0 20px 16px', background: 'var(--bg-subtle, #F2F2F7)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Weight Trend</span>
+                    <span style={{ color: trendColor, fontSize: 16 }}>
+                        {currentDelta > 0 ? '+' : ''}{currentDelta.toFixed(1)} kg
+                    </span>
+                </div>
+                <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                    <polyline points={points} fill="none" stroke={trendColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            </div>
+        );
+    }
+
     return (
         <>
             {/* Date Strip */}
@@ -363,6 +412,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Weight Trend */}
+            {trendGraph}
 
             {/* Activity Summary */}
             <div className="summary-card" onClick={() => { setShowStats(true); fetchWeeklyData(); }}>
